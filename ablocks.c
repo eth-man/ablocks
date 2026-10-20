@@ -12,6 +12,10 @@
  * A click from i3bar re-runs the block with BLOCK_BUTTON set. A signal or
  * click that lands while the block is still running is queued, so the bar
  * always ends up showing the state from after the last event.
+ *
+ * An animation is a list of pango frames wrapped around a block's output,
+ * "%s" standing for the output itself. At startup the boot animation plays
+ * across the bar as a wave, left to right; SIGUSR2 replays it.
  */
 #include <errno.h>
 #include <fcntl.h>
@@ -29,6 +33,7 @@
 #define OUTLEN    1024
 #define INLEN     4096
 #define URGENT    33
+#define MAXFRAMES 16
 
 enum { Once = 0 }; /* interval: run at startup only */
 
@@ -39,6 +44,12 @@ typedef struct {
 	int signal;   /* RTMIN+signal re-runs the block; 0 for none */
 	int separator;
 } Block;
+
+typedef struct {
+	const char *name;
+	unsigned int ms;                 /* how long each frame is shown */
+	const char *frames[MAXFRAMES];   /* NULL-terminated; "%s" is the output */
+} Anim;
 
 #include "config.h"
 
@@ -54,6 +65,9 @@ typedef struct {
 	long long next;   /* monotonic ms of the next run; -1 for never */
 	int pending;      /* re-run as soon as the current run finishes */
 	int pbutton;      /* BLOCK_BUTTON for that re-run */
+	const Anim *anim; /* animation playing, or NULL */
+	long long astart; /* when it starts; frame 0 is held until then */
+	int frame;        /* frame currently drawn */
 } State;
 
 static State st[LENGTH(blocks)];
@@ -63,6 +77,7 @@ static int sigfd[2];          /* self-pipe: signal handler -> main loop */
 static int infd = STDIN_FILENO; /* i3bar's click events; -1 once closed */
 static char inbuf[INLEN];
 static size_t inlen;
+static long long bootat = -1;   /* when to play the boot animation */
 
 static long long
 now(void)
@@ -222,11 +237,16 @@ readsignals(void)
 	size_t i;
 
 	while ((n = read(sigfd[0], c, sizeof(c))) > 0) {
-		for (k = 0; k < n; k++)
+		for (k = 0; k < n; k++) {
+			if (c[k] == SIGUSR2) {
+				bootat = now();
+				continue;
+			}
 			for (i = 0; i < LENGTH(blocks); i++)
 				if (c[k] == SIGUSR1 || (blocks[i].signal &&
 				    c[k] == SIGRTMIN + blocks[i].signal))
 					trigger(i, 0);
+		}
 	}
 }
 
@@ -248,6 +268,7 @@ setupsignals(void)
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
 	sigaction(SIGUSR1, &sa, NULL);
+	sigaction(SIGUSR2, &sa, NULL);
 	for (i = 0; i < LENGTH(blocks); i++) {
 		if (!blocks[i].signal)
 			continue;
@@ -327,6 +348,98 @@ readclicks(void)
 		inlen = 0; /* a line that long is not a click: drop it */
 }
 
+static const Anim *
+findanim(const char *name)
+{
+	size_t i;
+
+	for (i = 0; name && i < LENGTH(anims); i++)
+		if (!strcmp(anims[i].name, name))
+			return &anims[i];
+	return NULL;
+}
+
+static int
+nframes(const Anim *a)
+{
+	int n = 0;
+
+	while (n < MAXFRAMES && a->frames[n])
+		n++;
+	return n;
+}
+
+/* Start the boot animation on every visible block, each a little after its
+ * left neighbour so it runs across the bar as a wave. */
+static void
+boot(long long t)
+{
+	const Anim *a = findanim(bootanim);
+	size_t i, k = 0;
+
+	if (!a || !nframes(a))
+		return;
+	for (i = 0; i < LENGTH(blocks); i++) {
+		if (!st[i].full[0])
+			continue;
+		st[i].anim = a;
+		st[i].astart = t + (long long)k++ * bootstagger;
+		st[i].frame = 0;
+	}
+	dirty = 1;
+}
+
+/* Bring every animation up to time t; return ms until the next frame
+ * change anywhere, or -1 when nothing is animating. */
+static long long
+animate(long long t)
+{
+	State *s;
+	long long w = -1, at;
+	size_t i;
+	int f;
+
+	for (i = 0; i < LENGTH(blocks); i++) {
+		s = &st[i];
+		if (!s->anim)
+			continue;
+		f = t < s->astart ? 0 : (t - s->astart) / s->anim->ms;
+		if (f >= nframes(s->anim)) {
+			s->anim = NULL;
+			dirty = 1;
+			continue;
+		}
+		if (f != s->frame) {
+			s->frame = f;
+			dirty = 1;
+		}
+		at = s->astart + (long long)(f + 1) * s->anim->ms;
+		if (w < 0 || at - t < w)
+			w = at - t;
+	}
+	return w;
+}
+
+/* Copy fmt into dst with every "%s" replaced by s. */
+static void
+subst(char *dst, size_t size, const char *fmt, const char *s)
+{
+	size_t n = 0, l;
+
+	while (*fmt && n + 1 < size) {
+		if (fmt[0] == '%' && fmt[1] == 's') {
+			if ((l = strlen(s)) > size - 1 - n)
+				l = size - 1 - n;
+			memcpy(dst + n, s, l);
+			n += l;
+			fmt += 2;
+		} else {
+			dst[n++] = *fmt++;
+		}
+	}
+	dst[n] = '\0';
+}
+
 static void
 jsonstr(const char *s)
 {
@@ -347,6 +460,7 @@ jsonstr(const char *s)
 static void
 draw(void)
 {
+	char text[2 * OUTLEN];
 	size_t i;
 	int first = 1;
 
@@ -360,7 +474,12 @@ draw(void)
 		fputs("{\"name\":", stdout);
 		jsonstr(blocks[i].name);
 		fputs(",\"full_text\":", stdout);
-		jsonstr(st[i].full);
+		if (st[i].anim) {
+			subst(text, sizeof(text), st[i].anim->frames[st[i].frame], st[i].full);
+			jsonstr(text);
+		} else {
+			jsonstr(st[i].full);
+		}
 		if (st[i].shrt[0]) {
 			fputs(",\"short_text\":", stdout);
 			jsonstr(st[i].shrt);
@@ -387,13 +506,15 @@ main(void)
 	struct pollfd pfd[LENGTH(blocks) + 2];
 	size_t map[LENGTH(blocks)];
 	size_t i, n, nblk;
-	long long t, wait;
+	long long t, wait, w;
 
 	for (i = 0; i < LENGTH(blocks); i++) {
 		st[i].fd = -1;
 		st[i].next = 0;
 	}
 	setupsignals();
+	if (bootanim)
+		bootat = now() + bootdelay;
 	fputs("{\"version\":1,\"click_events\":true}\n[\n", stdout);
 
 	for (;;) {
@@ -408,6 +529,17 @@ main(void)
 			if (st[i].next >= 0 && (wait < 0 || st[i].next - t < wait))
 				wait = st[i].next - t;
 		}
+		if (bootat >= 0 && bootat <= t) {
+			boot(t);
+			bootat = -1;
+		}
+		if (bootat >= 0 && (wait < 0 || bootat - t < wait))
+			wait = bootat - t;
+		if ((w = animate(t)) >= 0 && (wait < 0 || w < wait))
+			wait = w;
+		/* before poll, or a frame would only appear after the sleep */
+		if (dirty)
+			draw();
 
 		for (i = n = 0; i < LENGTH(blocks); i++) {
 			if (st[i].fd < 0)
@@ -431,8 +563,5 @@ main(void)
 			readsignals();
 		if (pfd[nblk + 1].revents)
 			readclicks();
-
-		if (dirty)
-			draw();
 	}
 }

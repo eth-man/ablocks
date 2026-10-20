@@ -40,3 +40,21 @@ i3blocks way:
     @...     reserved for animation directives
 
 Exit code 33 marks the block urgent. A block with empty output is hidden.
+
+
+Animations
+----------
+An animation in config.h is a list of pango frames wrapped around a
+block's output, "%s" standing for the output itself. Use alpha (fades
+without touching the script's own colours) and rise (moves the text
+without changing its width), so the bar never shifts while one plays.
+
+Each time ablocks starts, i.e. on every i3 restart, bootanim plays across
+the bar as a wave, one block after another from left to right. Replay it
+with:
+
+    pkill -USR2 -x ablocks
+
+bootdelay gives the blocks time to print before the wave starts and
+bootstagger sets the gap between neighbours; keep it a multiple of the
+frame time so frames change together. Set bootanim to NULL to disable.

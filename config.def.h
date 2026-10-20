@@ -9,6 +9,29 @@ static const char markup[] = "pango";
 /* pixels between blocks; i3bar's default clips the rightmost block */
 static const int sepwidth = 8;
 
+/* Animations: pango frames wrapped around a block's output, "%s" standing for
+ * the output. alpha fades without touching the script's own colours, and
+ * rise moves the text vertically without changing its width, so neighbouring
+ * blocks never shift. Needs markup = "pango". */
+static const Anim anims[] = {
+	/* name     ms per frame, frames */
+	{ "boot",   40, {
+		"<span alpha='1%' rise='-4000'>%s</span>",   /* held until its turn */
+		"<span alpha='25%' rise='-2500'>%s</span>",
+		"<span alpha='55%' rise='0'>%s</span>",
+		"<span alpha='80%' rise='2500'>%s</span>",
+		"<span rise='1000'>%s</span>",
+		"<span rise='-800'>%s</span>",
+		"<span rise='0'>%s</span>",
+		NULL } },
+};
+
+/* played across the bar each time ablocks starts, i.e. on every i3 restart;
+ * `pkill -USR2 -x ablocks` replays it. NULL to disable. */
+static const char *bootanim = "boot";
+static const unsigned int bootdelay = 700;  /* ms for the blocks to print first */
+static const unsigned int bootstagger = 80; /* ms between neighbouring blocks */
+
 /* where the block scripts live, like i3blocks' command=~/.local/bin/statusbar/$BLOCK_NAME */
 #define SB "$HOME/.local/bin/statusbar/"
 
