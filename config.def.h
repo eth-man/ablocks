@@ -38,7 +38,7 @@ static const Anim anims[] = {
 		"<span color='#DC143C'>\uf241 %a</span>",
 		"<span color='#DC143C'>\uf240 %a</span>",
 		NULL } },
-	{ "blink",  400, 3,     30, {
+	{ "blink",  400, 3,     0, {
 		"%s",
 		"<span alpha='15%'>%s</span>",
 		NULL } },
@@ -49,6 +49,34 @@ static const Anim anims[] = {
 		"<span alpha='40%'>%s</span>",
 		"<span alpha='70%'>%s</span>",
 		"%s",
+		NULL } },
+	{ "bounce", 60,  2,     0, {
+		"<span rise='0'>%s</span>",
+		"<span rise='3000'>%s</span>",
+		"<span rise='5000'>%s</span>",
+		"<span rise='3000'>%s</span>",
+		"<span rise='0'>%s</span>",
+		"<span rise='-1200'>%s</span>",
+		"<span rise='0'>%s</span>",
+		NULL } },
+	/* wifi bars draining to off, red; repeats while the script keeps
+	 * asking, i.e. while offline. %a = the rest of the block (LAN icon) */
+	{ "wifidown", 140, 1,   30, {
+		"<span color='#DC143C'>\U000F0928</span>%a",
+		"<span color='#DC143C'>\U000F0925</span>%a",
+		"<span color='#DC143C'>\U000F0922</span>%a",
+		"<span color='#DC143C'>\U000F091F</span>%a",
+		"<span color='#DC143C'>\U000F092F</span>%a",
+		"<span color='#DC143C'>\U000F05AA</span>%a",
+		"<span color='#DC143C'>\U000F05AA</span>%a",
+		NULL } },
+	/* wifi bars filling up, green, once on reconnect */
+	{ "wifiup", 120, 2,     0, {
+		"<span color='#90EE90'>\U000F092F</span>%a",
+		"<span color='#90EE90'>\U000F091F</span>%a",
+		"<span color='#90EE90'>\U000F0922</span>%a",
+		"<span color='#90EE90'>\U000F0925</span>%a",
+		"<span color='#90EE90'>\U000F0928</span>%a",
 		NULL } },
 };
 
@@ -85,6 +113,6 @@ static const Block blocks[] = {
 	{ "nettraf",            SB "nettraf",                       2,        0,      1 },
 	{ "ping-lat",           SB "ping-lat",                      60,       18,     1 },
 	{ "vpn",                SB "vpn",                           60,       3,      1 },
-	{ "internet",           SB "internet",                      10,       0,      1 },
+	{ "internet",           SB "internet",                      10,       20,     1 },
 	{ "i3-keyboardlayout",  SB "i3-keyboard-layout i3status",   10,       30,     1 },
 };

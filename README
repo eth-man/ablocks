@@ -56,7 +56,10 @@ A script asks for an animation by printing an extra line:
 
 and keeps printing it for as long as the condition holds. The animation
 plays `loops` times, then again every `every` seconds, and stops as soon
-as the line goes. ms overrides the frame time (0 keeps the default).
+as the line goes. An animation with every = 0 is a one-shot: it marks
+an event rather than a condition, so it plays to the end even if the
+line is gone on the next run, and plays again when the argument changes.
+ms overrides the frame time (0 keeps the default).
 ablocks sets ABLOCKS=1 for its scripts; test it before printing the line,
 since i3blocks would show it as the block's short text:
 

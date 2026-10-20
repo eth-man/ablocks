@@ -267,14 +267,21 @@ request(size_t i, const char *line)
 	strcpy(s->want, name);
 
 	if (a != s->trig) {
-		if (s->anim && s->anim == s->trig) {
-			s->anim = NULL; /* the condition cleared: stop at once */
+		/* A repeating animation tracks a condition and stops the moment
+		 * it clears. A one-shot (every 0) marks an event and plays to the
+		 * end, even if the next run, often within the second, drops it. */
+		if (s->anim && s->anim == s->trig && s->trig->every) {
+			s->anim = NULL;
 			dirty = 1;
 		}
 		s->trig = a;
 		s->speed = 0;
 		s->nextburst = a ? now() : -1;
+	} else if (a && !a->every && strcmp(arg, s->arg)) {
+		s->nextburst = now(); /* a one-shot with a new value: new event */
 	}
+	if (!line)
+		return; /* keep %a for a one-shot still playing */
 	s->trigms = ms;
 	if (strcmp(arg, s->arg)) {
 		strcpy(s->arg, arg);
