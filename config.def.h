@@ -32,20 +32,20 @@ static const Anim anims[] = {
 		"<span rise='-800'>%s</span>",
 		"<span rise='0'>%s</span>",
 		NULL } },
-	/* a battery filling up, red: a plea for the charger. Material Design
+	/* a battery filling up, red: a plea for the charger. suckless icons
 	 * levels, as the battery block uses, in 10% steps. %a = "18%" */
 	{ "lowbat", 70,  3,     30, {
-		"<span color='#DC143C'>\U000F008E %a</span>",
-		"<span color='#DC143C'>\U000F007A %a</span>",
-		"<span color='#DC143C'>\U000F007B %a</span>",
-		"<span color='#DC143C'>\U000F007C %a</span>",
-		"<span color='#DC143C'>\U000F007D %a</span>",
-		"<span color='#DC143C'>\U000F007E %a</span>",
-		"<span color='#DC143C'>\U000F007F %a</span>",
-		"<span color='#DC143C'>\U000F0080 %a</span>",
-		"<span color='#DC143C'>\U000F0081 %a</span>",
-		"<span color='#DC143C'>\U000F0082 %a</span>",
-		"<span color='#DC143C'>\U000F0079 %a</span>",
+		"<span color='#DC143C'>\U00100000 %a</span>",
+		"<span color='#DC143C'>\U00100001 %a</span>",
+		"<span color='#DC143C'>\U00100002 %a</span>",
+		"<span color='#DC143C'>\U00100003 %a</span>",
+		"<span color='#DC143C'>\U00100004 %a</span>",
+		"<span color='#DC143C'>\U00100005 %a</span>",
+		"<span color='#DC143C'>\U00100006 %a</span>",
+		"<span color='#DC143C'>\U00100007 %a</span>",
+		"<span color='#DC143C'>\U00100008 %a</span>",
+		"<span color='#DC143C'>\U00100009 %a</span>",
+		"<span color='#DC143C'>\U0010000A %a</span>",
 		NULL } },
 	{ "blink",  400, 3,     0, {
 		"%s",
@@ -71,31 +71,28 @@ static const Anim anims[] = {
 	/* wifi bars draining to off, red; repeats while the script keeps
 	 * asking, i.e. while offline. %a = the rest of the block (LAN icon) */
 	{ "wifidown", 140, 1,   30, {
-		"<span color='#DC143C'>\U000F0928</span>%a",
-		"<span color='#DC143C'>\U000F0925</span>%a",
-		"<span color='#DC143C'>\U000F0922</span>%a",
-		"<span color='#DC143C'>\U000F091F</span>%a",
-		"<span color='#DC143C'>\U000F092F</span>%a",
-		"<span color='#DC143C'>\U000F05AA</span>%a",
-		"<span color='#DC143C'>\U000F05AA</span>%a",
+		"<span color='#DC143C'>\U00100010</span>%a",
+		"<span color='#DC143C'>\U0010000F</span>%a",
+		"<span color='#DC143C'>\U0010000E</span>%a",
+		"<span color='#DC143C'>\U0010000D</span>%a",
+		"<span color='#DC143C'>\U00100011</span>%a",
+		"<span color='#DC143C'>\U00100011</span>%a",
 		NULL } },
 	/* wifi bars sweeping, as if scanning: played on a click. Only the icon
 	 * changes; %a = the rest of the block exactly as the script prints it */
 	{ "wifiscan", 70, 2,    0, {
-		"<span color='#83a598'>\U000F092F</span>%a",
-		"<span color='#83a598'>\U000F091F</span>%a",
-		"<span color='#83a598'>\U000F0922</span>%a",
-		"<span color='#83a598'>\U000F0925</span>%a",
-		"<span color='#83a598'>\U000F0928</span>%a",
+		"<span color='#83a598'>\U0010000D</span>%a",
+		"<span color='#83a598'>\U0010000E</span>%a",
+		"<span color='#83a598'>\U0010000F</span>%a",
+		"<span color='#83a598'>\U00100010</span>%a",
 		NULL } },
 	/* wifi bars filling up, green, once on reconnect, while the signal
 	 * strength counts up to its value. %n = "92% " and the LAN icon */
 	{ "wifiup", 100, 3,     0, {
-		"<span color='#90EE90'>\U000F092F %n</span>",
-		"<span color='#90EE90'>\U000F091F %n</span>",
-		"<span color='#90EE90'>\U000F0922 %n</span>",
-		"<span color='#90EE90'>\U000F0925 %n</span>",
-		"<span color='#90EE90'>\U000F0928 %n</span>",
+		"<span color='#90EE90'>\U0010000D %n</span>",
+		"<span color='#90EE90'>\U0010000E %n</span>",
+		"<span color='#90EE90'>\U0010000F %n</span>",
+		"<span color='#90EE90'>\U00100010 %n</span>",
 		NULL } },
 };
 
