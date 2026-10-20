@@ -1,0 +1,42 @@
+ablocks - i3bar status command with animated blocks
+====================================================
+A small i3blocks replacement in the suckless style: blocks are compiled in
+from config.h, there is no runtime config file, and the only dependency is
+libc. Block scripts written for i3blocks run unchanged.
+
+
+Requirements
+------------
+A C99 compiler and make. i3bar to display the output.
+
+
+Installation
+------------
+Edit config.mk to match your setup (ablocks is installed into the
+/usr/local namespace by default), then:
+
+    make clean install
+
+The first build copies config.def.h to config.h; edit config.h and
+rebuild to change the blocks.
+
+
+Running ablocks
+---------------
+In the bar section of the i3 config:
+
+    status_command ablocks
+
+
+Blocks
+------
+Each block runs its command through /bin/sh on its interval (Once = at
+startup only), asynchronously, with BLOCK_NAME set. Output is read the
+i3blocks way:
+
+    line 1   full_text
+    line 2   short_text
+    line 3   color
+    @...     reserved for animation directives
+
+Exit code 33 marks the block urgent. A block with empty output is hidden.
