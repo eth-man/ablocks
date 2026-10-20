@@ -71,6 +71,15 @@ static const Anim anims[] = {
 		"<span color='#DC143C'>\U000F05AA</span>%a",
 		"<span color='#DC143C'>\U000F05AA</span>%a",
 		NULL } },
+	/* wifi bars sweeping, as if scanning: played on a click. Only the icon
+	 * changes; %a = the rest of the block exactly as the script prints it */
+	{ "wifiscan", 70, 2,    0, {
+		"<span color='#83a598'>\U000F092F</span>%a",
+		"<span color='#83a598'>\U000F091F</span>%a",
+		"<span color='#83a598'>\U000F0922</span>%a",
+		"<span color='#83a598'>\U000F0925</span>%a",
+		"<span color='#83a598'>\U000F0928</span>%a",
+		NULL } },
 	/* wifi bars filling up, green, once on reconnect, while the signal
 	 * strength counts up to its value. %n = "92% " and the LAN icon */
 	{ "wifiup", 100, 3,     0, {

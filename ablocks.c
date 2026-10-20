@@ -76,6 +76,7 @@ typedef struct {
 	long long next;       /* monotonic ms of the next run; -1 for never */
 	int pending;          /* re-run as soon as the current run finishes */
 	int pbutton;          /* BLOCK_BUTTON for that re-run */
+	int button;           /* BLOCK_BUTTON of the run in flight */
 
 	const Anim *anim;     /* animation playing, or NULL */
 	long long astart;     /* when it starts; frame 0 is held until then */
@@ -167,6 +168,7 @@ run(size_t i, int button)
 	fcntl(p[0], F_SETFL, O_NONBLOCK);
 	s->fd = p[0];
 	s->len = 0;
+	s->button = button;
 }
 
 /* Run now for a signal or click, or queue it behind the run in flight. */
@@ -279,8 +281,9 @@ request(size_t i, const char *line)
 		s->trig = a;
 		s->speed = 0;
 		s->nextburst = a ? now() : -1;
-	} else if (a && !a->every && strcmp(arg, s->arg)) {
-		s->nextburst = now(); /* a one-shot with a new value: new event */
+	} else if (a && !a->every && (s->button || strcmp(arg, s->arg))) {
+		/* a one-shot from a click, or with a new value: a new event */
+		s->nextburst = now();
 	}
 	if (!line)
 		return; /* keep %a for a one-shot still playing */
