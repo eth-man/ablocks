@@ -47,6 +47,12 @@ static const Anim anims[] = {
 		"<span color='#DC143C'>\U00100009 %a</span>",
 		"<span color='#DC143C'>\U0010000A %a</span>",
 		NULL } },
+	/* critical battery: only the icon blinks, the percentage stays put,
+	 * for as long as the script asks (Always). %a = "9%" */
+	{ "batcrit", 500, 1,    Always, {
+		"<span color='#DC143C'>\U0010003D %a</span>",
+		"<span color='#DC143C'><span alpha='15%'>\U0010003D</span> %a</span>",
+		NULL } },
 	{ "blink",  400, 3,     0, {
 		"%s",
 		"<span alpha='15%'>%s</span>",

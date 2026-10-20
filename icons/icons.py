@@ -63,6 +63,7 @@ class Icon:
 	def __init__(self):
 		self.strokes = []  # (ops, closed)
 		self.fills = []    # ops, always closed
+		self.cuts = []     # an Icon whose shape is cut out of this one
 
 	def ops(self, ops, closed=False):
 		self.strokes.append((ops, closed)); return self
@@ -88,6 +89,10 @@ class Icon:
 	def frrect(self, x0, y0, x1, y1, r):
 		self.fills.append(rrectops(x0, y0, x1, y1, r)); return self
 
+	def cut(self, icon):
+		"""Knock icon's shape out of this one, for a mark on a solid body."""
+		self.cuts.append(icon); return self
+
 	def solid(self, pts):
 		"""Filled, with the stroke around it rounding the corners. The
 		points are put in one winding first: the other way round, the
@@ -107,7 +112,8 @@ def battery(level=None, bolt=False, alert=False):
 	if bolt:
 		i.solid([(11.6, 8.8), (8.4, 12.6), (10.6, 12.6), (9.6, 15.2), (12.8, 11.4), (10.6, 11.4)])
 	if alert:
-		i.line((10.5, 9.6), (10.5, 12.2)).dot(10.5, 14.5, 1.0)
+		# As tall as the body allows: at bar size anything shorter is a blob
+		i.line((10.5, 8.9), (10.5, 11.9)).dot(10.5, 14.6, 1.2)
 	return i
 
 
@@ -245,6 +251,12 @@ ICONS["bluetooth-scan"] = rune().arc(12, 12, 9.4, -36, 36)
 ICONS["rx"] = arrowhead(Icon().circle(12, 12, 9.2).line((12, 7.2), (12, 16.8)), (12, 16.8), 90, 3.8)
 ICONS["tx"] = arrowhead(Icon().circle(12, 12, 9.2).line((12, 16.8), (12, 7.2)), (12, 7.2), -90, 3.8)
 
+# The same body solid, the mark cut out of it: reads at bar size, where
+# an outlined "!" inside a 15px battery is two pixels.
+ICONS["battery-critical"] = (Icon().rrect(2, 7, 19, 17, 2.6).frrect(2, 7, 19, 17, 2.6)
+                             .frrect(20.3, 10, 22, 14, 0.8)
+                             .cut(Icon().line((10.5, 9.3), (10.5, 11.9)).dot(10.5, 14.5, 1.2)))
+
 # Families share one advance width, so animation frames never change width.
 FAMILIES = ("battery-", "wifi-", "volume-", "brightness-", "bluetooth")
 
@@ -278,7 +290,40 @@ def draw(pen, ops, closed, tf):
 	pen.closePath() if closed else pen.endPath()
 
 
+def render(g, icon, tf):
+	pen = g.glyphPen()
+	for ops, closed in icon.strokes:
+		draw(pen, ops, closed, tf)
+	pen = None
+	if icon.strokes:
+		g.stroke("circular", STROKE * UNIT, "round", "round")
+	pen = g.glyphPen(replace=False)
+	for ops in icon.fills:
+		draw(pen, ops, True, tf)
+	pen = None
+	g.removeOverlap()
+
+
+def checkcodes():
+	"""Refuse to build if an icon already in codepoints.txt would move:
+	scripts carry the glyphs themselves, so a shifted codepoint silently
+	turns into a different icon. New icons belong at the end."""
+	import os
+	path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "codepoints.txt")
+	now = {name: BASE + k for k, name in enumerate(ICONS)}
+	try:
+		old = dict((l.split()[1], int(l.split()[0][2:], 16)) for l in open(path))
+	except FileNotFoundError:
+		old = {}
+	moved = [n for n, c in old.items() if now.get(n) != c]
+	if moved:
+		sys.exit("icons.py: would move or drop %s; append new icons instead" % ", ".join(moved))
+	with open(path, "w") as f:
+		f.writelines("U+%06X %s\n" % (c, n) for n, c in now.items())
+
+
 def build(out):
+	checkcodes()
 	import fontforge
 	font = fontforge.font()
 	font.encoding = "UnicodeFull"
@@ -296,17 +341,21 @@ def build(out):
 		lo, hi = spans[family(name)]
 		tf = lambda p, dx=PAD - lo: ((p[0] + dx) * UNIT, CENTRE + (12 - p[1]) * UNIT)
 		g = font.createChar(BASE + k, name)
-		pen = g.glyphPen()
-		for ops, closed in icon.strokes:
-			draw(pen, ops, closed, tf)
-		pen = None
-		if icon.strokes:
-			g.stroke("circular", STROKE * UNIT, "round", "round")
-		pen = g.glyphPen(replace=False)
-		for ops in icon.fills:
-			draw(pen, ops, True, tf)
-		pen = None
-		g.removeOverlap()
+		render(g, icon, tf)
+		for c in icon.cuts:
+			# Added running the other way, the cut's contours are holes once
+			# overlaps are removed. (glyph.exclude() emptied the glyph.)
+			tmp = font.createChar(-1, name + ".cut")
+			render(tmp, c, tf)
+			layer = g.foreground
+			for contour in tmp.foreground:
+				contour = contour.dup()
+				if contour.isClockwise():
+					contour.reverseDirection()
+				layer += contour
+			g.foreground = layer
+			g.removeOverlap()
+			font.removeGlyph(tmp)
 		g.correctDirection()
 		g.round()
 		g.width = int(round((hi - lo + 2 * PAD) * UNIT))

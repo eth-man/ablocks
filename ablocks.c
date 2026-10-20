@@ -204,17 +204,6 @@ notify(const char *title, const char *body)
 		waitpid(pid, NULL, 0);
 }
 
-static const Anim *
-findanim(const char *name)
-{
-	size_t i;
-
-	for (i = 0; name && i < LENGTH(anims); i++)
-		if (!strcmp(anims[i].name, name))
-			return &anims[i];
-	return NULL;
-}
-
 static int
 nframes(const Anim *a)
 {
@@ -223,6 +212,19 @@ nframes(const Anim *a)
 	while (n < MAXFRAMES && a->frames[n])
 		n++;
 	return n;
+}
+
+/* An animation without frames counts as none: it would end as it began
+ * and, replayed Always, spin the main loop. */
+static const Anim *
+findanim(const char *name)
+{
+	size_t i;
+
+	for (i = 0; name && i < LENGTH(anims); i++)
+		if (!strcmp(anims[i].name, name))
+			return nframes(&anims[i]) ? &anims[i] : NULL;
+	return NULL;
 }
 
 static void
@@ -433,6 +435,12 @@ animate(long long t)
 			s->anim = NULL;
 			dirty = 1;
 			at = s->trig ? s->nextburst : -1;
+			/* due again already, as an Always animation is: go straight
+			 * on, or the plain output flashes for one draw in between */
+			if (at >= 0 && at <= t) {
+				i--;
+				continue;
+			}
 		} else {
 			if (f != s->step) {
 				s->step = f;
