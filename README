@@ -46,7 +46,8 @@ Animations
 ----------
 An animation in config.h is a list of pango frames wrapped around a
 block's output: "%s" is the output itself, "%a" an argument from the
-script. Use alpha (fades without touching the script's own colours) and
+script, and "%n" that argument with its first number counting up from 0
+over the burst, padded to its final width so nothing beside it moves. Use alpha (fades without touching the script's own colours) and
 rise (moves the text without changing its width), so the bar never shifts
 while one plays.
 

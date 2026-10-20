@@ -10,8 +10,9 @@ static const char markup[] = "pango";
 static const int sepwidth = 8;
 
 /* Animations: pango frames wrapped around a block's output. In a frame, "%s"
- * is the block's own output and "%a" the argument from the script's
- * "@name [ms [arg]]" line. alpha fades without touching the script's
+ * is the block's own output, "%a" the argument from the script's
+ * "@name [ms [arg]]" line, and "%n" that argument with its first number
+ * counting up from 0 over the burst, padded so the width never changes. alpha fades without touching the script's
  * colours and rise moves text without changing its width, so neighbouring
  * blocks never shift. Needs markup = "pango".
  *
@@ -70,13 +71,14 @@ static const Anim anims[] = {
 		"<span color='#DC143C'>\U000F05AA</span>%a",
 		"<span color='#DC143C'>\U000F05AA</span>%a",
 		NULL } },
-	/* wifi bars filling up, green, once on reconnect */
-	{ "wifiup", 120, 2,     0, {
-		"<span color='#90EE90'>\U000F092F</span>%a",
-		"<span color='#90EE90'>\U000F091F</span>%a",
-		"<span color='#90EE90'>\U000F0922</span>%a",
-		"<span color='#90EE90'>\U000F0925</span>%a",
-		"<span color='#90EE90'>\U000F0928</span>%a",
+	/* wifi bars filling up, green, once on reconnect, while the signal
+	 * strength counts up to its value. %n = "92% " and the LAN icon */
+	{ "wifiup", 100, 3,     0, {
+		"<span color='#90EE90'>\U000F092F %n</span>",
+		"<span color='#90EE90'>\U000F091F %n</span>",
+		"<span color='#90EE90'>\U000F0922 %n</span>",
+		"<span color='#90EE90'>\U000F0925 %n</span>",
+		"<span color='#90EE90'>\U000F0928 %n</span>",
 		NULL } },
 };
 

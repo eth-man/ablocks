@@ -13,7 +13,8 @@
  * always ends up showing the state from after the last event.
  *
  * An animation is a list of pango frames wrapped around a block's output,
- * "%s" standing for the output and "%a" for an argument the script passes.
+ * "%s" standing for the output and "%a" for an argument the script passes;
+ * "%n" is that argument with its first number counting up from 0.
  * A script asks for one with an output line "@name [ms [arg]]" and keeps
  * printing it for as long as the animation should recur: it plays `loops`
  * times, then again every `every` seconds, and stops when the line goes.
@@ -80,7 +81,8 @@ typedef struct {
 	long long astart;     /* when it starts; frame 0 is held until then */
 	unsigned int ms;      /* its frame time */
 	int loops;            /* plays of its frames in this burst */
-	int frame;            /* frame currently drawn */
+	int step;             /* frames shown so far in this burst */
+	int frame;            /* frame currently drawn: step % frames */
 
 	const Anim *trig;     /* animation the script asks for, or NULL */
 	char want[NAMELEN];   /* name it asked for, known or not */
@@ -228,7 +230,7 @@ play(State *s, const Anim *a, unsigned int ms, int loops, long long t)
 	s->ms = ms ? ms : 1;
 	s->loops = loops > 0 ? loops : 1;
 	s->astart = t;
-	s->frame = 0;
+	s->step = s->frame = 0;
 	dirty = 1;
 }
 
@@ -429,7 +431,8 @@ animate(long long t)
 			dirty = 1;
 			at = s->trig ? s->nextburst : -1;
 		} else {
-			if (f % nframes(s->anim) != s->frame) {
+			if (f != s->step) {
+				s->step = f;
 				s->frame = f % nframes(s->anim);
 				dirty = 1;
 			}
@@ -578,11 +581,34 @@ readclicks(void)
 		inlen = 0; /* a line that long is not a click: drop it */
 }
 
-/* Copy frame into dst, "%s" becoming the output and "%a" the argument. */
+/* Copy arg into dst with its first number counted up from 0: at step k of
+ * total it shows k/(total-1) of its value, padded to the value's own digit
+ * count so that, in a monospace bar font, the block keeps its width. */
+static void
+countup(char *dst, size_t size, const char *arg, int step, int total)
+{
+	const char *d, *e;
+	unsigned long v = 0;
+
+	d = arg + strcspn(arg, "0123456789");
+	for (e = d; *e >= '0' && *e <= '9' && e - d < 9; e++)
+		v = v * 10 + (*e - '0');
+	if (e == d) {
+		snprintf(dst, size, "%s", arg);
+		return;
+	}
+	if (total > 1)
+		v = v * step / (total - 1);
+	snprintf(dst, size, "%.*s%*lu%s", (int)(d - arg), arg, (int)(e - d), v, e);
+}
+
+/* Copy frame into dst, "%s" becoming the output, "%a" the argument and
+ * "%n" the argument counting up over the burst's steps. */
 static void
 subst(char *dst, size_t size, const char *frame, const char *out,
-      const char *arg)
+      const char *arg, int step, int total)
 {
+	char counted[ARGLEN + 16];
 	const char *r;
 	size_t n = 0, l;
 
@@ -592,6 +618,10 @@ subst(char *dst, size_t size, const char *frame, const char *out,
 			r = out;
 		else if (frame[0] == '%' && frame[1] == 'a')
 			r = arg;
+		else if (frame[0] == '%' && frame[1] == 'n') {
+			countup(counted, sizeof(counted), arg, step, total);
+			r = counted;
+		}
 		if (r) {
 			if ((l = strlen(r)) > size - 1 - n)
 				l = size - 1 - n;
@@ -641,7 +671,8 @@ draw(void)
 		fputs(",\"full_text\":", stdout);
 		if (st[i].anim) {
 			subst(text, sizeof(text), st[i].anim->frames[st[i].frame],
-			      st[i].full, st[i].arg);
+			      st[i].full, st[i].arg, st[i].step,
+			      nframes(st[i].anim) * st[i].loops);
 			jsonstr(text);
 		} else {
 			jsonstr(st[i].full);
