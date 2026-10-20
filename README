@@ -7,7 +7,8 @@ libc. Block scripts written for i3blocks run unchanged.
 
 Requirements
 ------------
-A C99 compiler and make. i3bar to display the output.
+A C99 compiler and make. Python 3 with fontforge to build the icon font
+(fontforge on Arch ships the Python module). i3bar to display the output.
 
 
 Installation
@@ -16,6 +17,11 @@ Edit config.mk to match your setup (ablocks is installed into the
 /usr/local namespace by default), then:
 
     make clean install
+
+This installs the binary and the suckless icons font. For a single user,
+without root:
+
+    make PREFIX=$HOME/.local install
 
 The first build copies config.def.h to config.h; edit config.h and
 rebuild to change the blocks.
