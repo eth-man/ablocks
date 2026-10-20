@@ -16,7 +16,7 @@ static const Block blocks[] = {
 	/* name                 command                             interval  signal  separator */
 	{ "failed",             SB "failed",                        60,       15,     1 },
 	{ "record",             "cat /tmp/recordingicon",           Once,     9,      1 },
-	{ "spotifyControls",    SB "spotifyControls",               10,       32,     0 },
+	{ "spotifyControls",    SB "spotifyControls",               10,       19,     0 },
 	{ "spotifyPlay",        SB "spotifyPlay",                   1,        0,      1 },
 	{ "screen-timeout",     SB "screen-timeout",                10,       0,      1 },
 	{ "music",              SB "music",                         Once,     11,     1 },
@@ -34,7 +34,7 @@ static const Block blocks[] = {
 	{ "gitcheck",           SB "gitcheck",                      300,      14,     1 },
 	{ "sb-bluetooth",       SB "sb-bluetooth",                  5,        17,     1 },
 	{ "nettraf",            SB "nettraf",                       2,        0,      1 },
-	{ "ping-lat",           SB "ping-lat",                      60,       31,     1 },
+	{ "ping-lat",           SB "ping-lat",                      60,       18,     1 },
 	{ "vpn",                SB "vpn",                           60,       3,      1 },
 	{ "internet",           SB "internet",                      10,       0,      1 },
 	{ "i3-keyboardlayout",  SB "i3-keyboard-layout i3status",   10,       30,     1 },
