@@ -39,7 +39,7 @@
 #define NAMELEN   32
 #define INLEN     4096
 #define URGENT    33
-#define MAXFRAMES 16
+#define MAXFRAMES 48
 #define MINMS     20
 #define MAXMS     2000
 
@@ -262,10 +262,18 @@ request(size_t i, const char *line)
 	State *s = &st[i];
 	char name[NAMELEN] = "", arg[ARGLEN] = "";
 	unsigned int ms = 0;
+	int off = 0;
+	const char *p;
 	const Anim *a;
 
-	if (line)
-		sscanf(line, "@%31s %u %255[^\n]", name, &ms, arg);
+	if (line && sscanf(line, "@%31s %u%n", name, &ms, &off) == 2) {
+		/* skip spaces only: a leading tab is an empty first field */
+		for (p = line + off; *p == ' '; p++)
+			;
+		snprintf(arg, sizeof(arg), "%.*s", (int)strcspn(p, "\n"), p);
+	} else if (line) {
+		sscanf(line, "@%31s", name);
+	}
 	a = findanim(name);
 	if (*name && !a && strcmp(name, s->want))
 		fprintf(stderr, "ablocks: %s: no animation \"%s\"\n",
@@ -613,24 +621,57 @@ countup(char *dst, size_t size, const char *arg, int step, int total)
 	snprintf(dst, size, "%.*s%*lu%s", (int)(d - arg), arg, (int)(e - d), v, e);
 }
 
-/* Copy frame into dst, "%s" becoming the output, "%a" the argument and
- * "%n" the argument counting up over the burst's steps. */
+/* Copy field k (1-based) of the tab-separated arg into dst; empty when the
+ * arg has fewer fields. */
+static void
+field(char *dst, size_t size, const char *arg, int k)
+{
+	size_t l;
+
+	while (--k > 0 && (arg = strchr(arg, '\t')))
+		arg++;
+	if (!arg) {
+		*dst = '\0';
+		return;
+	}
+	if ((l = strcspn(arg, "\t")) > size - 1)
+		l = size - 1;
+	memcpy(dst, arg, l);
+	dst[l] = '\0';
+}
+
+/* Copy frame into dst, "%s" becoming the output, "%a" the argument, "%n"
+ * the argument counting up over the burst's steps, "%1".."%9" its
+ * tab-separated fields and "%{k p}" field k with its first number at p% of
+ * its value, so a run of frames can ease a count however it likes. */
 static void
 subst(char *dst, size_t size, const char *frame, const char *out,
       const char *arg, int step, int total)
 {
-	char counted[ARGLEN + 16];
+	char counted[ARGLEN + 16], fld[ARGLEN];
 	const char *r;
 	size_t n = 0, l;
+	int k, len, adv;
+	unsigned int pct;
 
 	while (*frame && n + 1 < size) {
 		r = NULL;
-		if (frame[0] == '%' && frame[1] == 's')
+		adv = 2;
+		if (frame[0] == '%' && frame[1] == '{' &&
+		    sscanf(frame, "%%{%1d %u}%n", &k, &pct, &len) == 2 && len > 0) {
+			field(fld, sizeof(fld), arg, k);
+			countup(counted, sizeof(counted), fld, pct, 101);
+			r = counted;
+			adv = len;
+		} else if (frame[0] == '%' && frame[1] == 's')
 			r = out;
 		else if (frame[0] == '%' && frame[1] == 'a')
 			r = arg;
 		else if (frame[0] == '%' && frame[1] == 'n') {
 			countup(counted, sizeof(counted), arg, step, total);
+			r = counted;
+		} else if (frame[0] == '%' && frame[1] >= '1' && frame[1] <= '9') {
+			field(counted, sizeof(counted), arg, frame[1] - '0');
 			r = counted;
 		}
 		if (r) {
@@ -638,7 +679,7 @@ subst(char *dst, size_t size, const char *frame, const char *out,
 				l = size - 1 - n;
 			memcpy(dst + n, r, l);
 			n += l;
-			frame += 2;
+			frame += adv;
 		} else {
 			dst[n++] = *frame++;
 		}

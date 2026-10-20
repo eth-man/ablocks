@@ -12,8 +12,9 @@ static const int sepwidth = 24;
 
 /* Animations: pango frames wrapped around a block's output. In a frame, "%s"
  * is the block's own output, "%a" the argument from the script's
- * "@name [ms [arg]]" line, and "%n" that argument with its first number
- * counting up from 0 over the burst, padded so the width never changes. alpha fades without touching the script's
+ * "@name [ms [arg]]" line, "%n" that argument with its first number
+ * counting up from 0 over the burst, padded so the width never changes, and
+ * "%1".."%9" the argument's tab-separated fields. alpha fades without touching the script's
  * colours and rise moves text without changing its width, so neighbouring
  * blocks never shift. Needs markup = "pango".
  *
@@ -125,6 +126,58 @@ static const Anim anims[] = {
 		"<span color='#90EE90'>\U0010000E %n</span>",
 		"<span color='#90EE90'>\U0010000F %n</span>",
 		"<span color='#90EE90'>\U00100010 %n</span>",
+		NULL } },
+	/* a weather threshold crossed: only the icons over it move, the drop
+	 * falling twice, the snowflake drifting down and the sun pulsing, for
+	 * 3.6s; then each is replaced by its number, counting up from 0, fast
+	 * and slowing, for 1.2s, held for 1s, and the icons come back. Every five
+	 * minutes until a middle click. The script passes three tab-separated
+	 * fields per icon, rain, cold and heat in order: the icon if it keeps
+	 * still, the icon if it moves, and its number, each with the space after
+	 * it: a space between two spans takes the text font's wider space, not
+	 * the icon font's, and would push the icons apart as the motion starts. */
+#define WXMOVE(r, c, h) \
+	"%1<span color='#83a598' " r ">%2</span>" \
+	"%4<span color='#83a598' " c ">%5</span>" \
+	"%7<span color='#e8cb61' " h ">%8</span>"
+#define WXCOUNT(p) \
+	"%1<span color='#83a598'>%{3 " p "}</span>" \
+	"%4<span color='#83a598'>%{6 " p "}</span>" \
+	"%7<span color='#e8cb61'>%{9 " p "}</span>"
+#define WXHOLD WXCOUNT("100")
+	{ "weather", 150, 1,    300, {
+		WXMOVE("alpha='20%' rise='6000'", "alpha='15%' rise='6000'", ""),
+		WXMOVE("alpha='30%' rise='5900'", "alpha='23%' rise='5600'", "alpha='95%'"),
+		WXMOVE("alpha='40%' rise='5600'", "alpha='31%' rise='5200'", "alpha='80%'"),
+		WXMOVE("alpha='50%' rise='5200'", "alpha='39%' rise='4800'", "alpha='60%'"),
+		WXMOVE("alpha='60%' rise='4500'", "alpha='48%' rise='4400'", "alpha='40%'"),
+		WXMOVE("alpha='70%' rise='3700'", "alpha='56%' rise='4100'", "alpha='25%'"),
+		WXMOVE("alpha='80%' rise='2600'", "alpha='64%' rise='3700'", "alpha='20%'"),
+		WXMOVE("alpha='90%' rise='1400'", "alpha='72%' rise='3400'", "alpha='25%'"),
+		WXMOVE("rise='0'", "alpha='80%' rise='3000'", "alpha='40%'"),
+		WXMOVE("rise='-1500'", "alpha='88%' rise='2700'", "alpha='60%'"),
+		WXMOVE("rise='-600'", "alpha='96%' rise='2400'", "alpha='80%'"),
+		WXMOVE("rise='0'", "rise='2100'", "alpha='95%'"),
+		WXMOVE("alpha='20%' rise='6000'", "rise='1800'", ""),
+		WXMOVE("alpha='30%' rise='5900'", "rise='1600'", "alpha='95%'"),
+		WXMOVE("alpha='40%' rise='5600'", "rise='1300'", "alpha='80%'"),
+		WXMOVE("alpha='50%' rise='5200'", "rise='1100'", "alpha='60%'"),
+		WXMOVE("alpha='60%' rise='4500'", "rise='900'", "alpha='40%'"),
+		WXMOVE("alpha='70%' rise='3700'", "rise='700'", "alpha='25%'"),
+		WXMOVE("alpha='80%' rise='2600'", "rise='500'", "alpha='20%'"),
+		WXMOVE("alpha='90%' rise='1400'", "rise='400'", "alpha='25%'"),
+		WXMOVE("rise='0'", "rise='200'", "alpha='40%'"),
+		WXMOVE("rise='-1500'", "rise='100'", "alpha='60%'"),
+		WXMOVE("rise='-600'", "rise='0'", "alpha='80%'"),
+		WXMOVE("rise='0'", "rise='0'", "alpha='95%'"),
+		WXCOUNT("0"), WXCOUNT("37"), WXCOUNT("64"), WXCOUNT("82"),
+		WXCOUNT("92"), WXCOUNT("97"), WXCOUNT("99"), WXCOUNT("100"),
+		WXHOLD, WXHOLD, WXHOLD, WXHOLD, WXHOLD, WXHOLD, WXHOLD,
+		NULL } },
+	/* every number for 2.5s, once: a middle click with no alert showing.
+	 * %a = the block with its numbers */
+	{ "weathershow", 250, 1, 0, {
+		"%a", "%a", "%a", "%a", "%a", "%a", "%a", "%a", "%a", "%a",
 		NULL } },
 };
 
