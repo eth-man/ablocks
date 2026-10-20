@@ -53,6 +53,21 @@ static const Anim anims[] = {
 		"<span color='#DC143C'>\U0010003D %a</span>",
 		"<span color='#DC143C'><span alpha='15%'>\U0010003D</span> %a</span>",
 		NULL } },
+	/* charger plugged in: the battery fills, then the bolt pulses, in
+	 * purple, once. %a = "59%" */
+	{ "plugin", 180, 1,     0, {
+		"<span color='#bb86fc'>\U00100000 %a</span>",
+		"<span color='#bb86fc'>\U00100002 %a</span>",
+		"<span color='#bb86fc'>\U00100004 %a</span>",
+		"<span color='#bb86fc'>\U00100006 %a</span>",
+		"<span color='#bb86fc'>\U00100008 %a</span>",
+		"<span color='#bb86fc'>\U0010000A %a</span>",
+		"<span color='#bb86fc'>\U0010000B %a</span>",
+		"<span color='#bb86fc'><span alpha='35%'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'>\U0010000B %a</span>",
+		"<span color='#bb86fc'><span alpha='35%'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'>\U0010000B %a</span>",
+		NULL } },
 	{ "blink",  400, 3,     0, {
 		"%s",
 		"<span alpha='15%'>%s</span>",
@@ -128,7 +143,7 @@ static const Block blocks[] = {
 	{ "cpu",                SB "cpu",                           15,       0,      0 },
 	{ "volume",             SB "volume",                        Once,     10,     0 },
 	{ "brightness",         SB "brightness",                    5,        13,     0 },
-	{ "battery",            SB "battery BAT0",                  5,        0,      0 },
+	{ "battery",            SB "battery BAT0",                  5,        21,     0 },
 	{ "clock",              SB "clock",                         30,       0,      0 },
 	{ "gitcheck",           SB "gitcheck",                      300,      14,     0 },
 	{ "sb-bluetooth",       SB "sb-bluetooth",                  5,        17,     0 },
