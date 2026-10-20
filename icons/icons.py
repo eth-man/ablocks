@@ -89,7 +89,11 @@ class Icon:
 		self.fills.append(rrectops(x0, y0, x1, y1, r)); return self
 
 	def solid(self, pts):
-		"""Filled, with the stroke around it rounding the corners."""
+		"""Filled, with the stroke around it rounding the corners. The
+		points are put in one winding first: the other way round, the
+		fill comes out as a hole once merged with its stroke."""
+		if sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1])) < 0:
+			pts = pts[::-1]
 		self.fills.append(lineops(pts))
 		return self.path(pts, True)
 
@@ -235,6 +239,11 @@ ICONS["bluetooth"] = rune()
 ICONS["bluetooth-off"] = rune().line((4, 4), (20, 20))
 ICONS["bluetooth-connected"] = rune().dot(3.6, 12, 1.2).dot(20.4, 12, 1.2)
 ICONS["bluetooth-scan"] = rune().arc(12, 12, 9.4, -36, 36)
+
+# Network traffic: circled, so a rate never reads as a file transfer or
+# as git's arrows. Appended, as every glyph is, to keep codepoints stable.
+ICONS["rx"] = arrowhead(Icon().circle(12, 12, 9.2).line((12, 7.2), (12, 16.8)), (12, 16.8), 90, 3.8)
+ICONS["tx"] = arrowhead(Icon().circle(12, 12, 9.2).line((12, 16.8), (12, 7.2)), (12, 7.2), -90, 3.8)
 
 # Families share one advance width, so animation frames never change width.
 FAMILIES = ("battery-", "wifi-", "volume-", "brightness-", "bluetooth")
