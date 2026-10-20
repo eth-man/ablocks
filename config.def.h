@@ -31,13 +31,20 @@ static const Anim anims[] = {
 		"<span rise='-800'>%s</span>",
 		"<span rise='0'>%s</span>",
 		NULL } },
-	/* a battery filling up, red: a plea for the charger. %a = "18%" */
-	{ "lowbat", 150, 3,     30, {
-		"<span color='#DC143C'>\uf244 %a</span>",
-		"<span color='#DC143C'>\uf243 %a</span>",
-		"<span color='#DC143C'>\uf242 %a</span>",
-		"<span color='#DC143C'>\uf241 %a</span>",
-		"<span color='#DC143C'>\uf240 %a</span>",
+	/* a battery filling up, red: a plea for the charger. Material Design
+	 * levels, as the battery block uses, in 10% steps. %a = "18%" */
+	{ "lowbat", 70,  3,     30, {
+		"<span color='#DC143C'>\U000F008E %a</span>",
+		"<span color='#DC143C'>\U000F007A %a</span>",
+		"<span color='#DC143C'>\U000F007B %a</span>",
+		"<span color='#DC143C'>\U000F007C %a</span>",
+		"<span color='#DC143C'>\U000F007D %a</span>",
+		"<span color='#DC143C'>\U000F007E %a</span>",
+		"<span color='#DC143C'>\U000F007F %a</span>",
+		"<span color='#DC143C'>\U000F0080 %a</span>",
+		"<span color='#DC143C'>\U000F0081 %a</span>",
+		"<span color='#DC143C'>\U000F0082 %a</span>",
+		"<span color='#DC143C'>\U000F0079 %a</span>",
 		NULL } },
 	{ "blink",  400, 3,     0, {
 		"%s",
