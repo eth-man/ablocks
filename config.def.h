@@ -68,6 +68,17 @@ static const Anim anims[] = {
 		"<span color='#bb86fc'><span alpha='35%'>\U0010000B</span> %a</span>",
 		"<span color='#bb86fc'>\U0010000B %a</span>",
 		NULL } },
+	/* charger pulled: the bolt fades away, then the block's own icon
+	 * fades back in, once; the reverse of plugin. %a = "59%" */
+	{ "unplug", 180, 1,     0, {
+		"<span color='#bb86fc'>\U0010000B %a</span>",
+		"<span color='#bb86fc'><span alpha='65%'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span alpha='35%'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span alpha='12%'>\U0010000B</span> %a</span>",
+		"<span alpha='30%'>%s</span>",
+		"<span alpha='60%'>%s</span>",
+		"<span alpha='85%'>%s</span>",
+		NULL } },
 	{ "blink",  400, 3,     0, {
 		"%s",
 		"<span alpha='15%'>%s</span>",
