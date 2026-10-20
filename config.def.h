@@ -9,13 +9,19 @@ static const char markup[] = "pango";
 /* pixels between blocks; i3bar's default clips the rightmost block */
 static const int sepwidth = 8;
 
-/* Animations: pango frames wrapped around a block's output, "%s" standing for
- * the output. alpha fades without touching the script's own colours, and
- * rise moves the text vertically without changing its width, so neighbouring
- * blocks never shift. Needs markup = "pango". */
+/* Animations: pango frames wrapped around a block's output. In a frame, "%s"
+ * is the block's own output and "%a" the argument from the script's
+ * "@name [ms [arg]]" line. alpha fades without touching the script's
+ * colours and rise moves text without changing its width, so neighbouring
+ * blocks never shift. Needs markup = "pango".
+ *
+ * ms     frame time; a script's "@name ms" or Shift+scroll overrides it
+ * loops  plays of the frame list per burst
+ * every  seconds from one burst to the next while the script keeps asking;
+ *        0 plays once each time the request appears, Always never pauses */
 static const Anim anims[] = {
-	/* name     ms per frame, frames */
-	{ "boot",   40, {
+	/* name     ms   loops  every   frames */
+	{ "boot",   40,  1,     0, {
 		"<span alpha='1%' rise='-4000'>%s</span>",   /* held until its turn */
 		"<span alpha='25%' rise='-2500'>%s</span>",
 		"<span alpha='55%' rise='0'>%s</span>",
@@ -23,6 +29,26 @@ static const Anim anims[] = {
 		"<span rise='1000'>%s</span>",
 		"<span rise='-800'>%s</span>",
 		"<span rise='0'>%s</span>",
+		NULL } },
+	/* a battery filling up, red: a plea for the charger. %a = "18%" */
+	{ "lowbat", 150, 3,     30, {
+		"<span color='#DC143C'>\uf244 %a</span>",
+		"<span color='#DC143C'>\uf243 %a</span>",
+		"<span color='#DC143C'>\uf242 %a</span>",
+		"<span color='#DC143C'>\uf241 %a</span>",
+		"<span color='#DC143C'>\uf240 %a</span>",
+		NULL } },
+	{ "blink",  400, 3,     30, {
+		"%s",
+		"<span alpha='15%'>%s</span>",
+		NULL } },
+	{ "pulse",  90,  2,     60, {
+		"<span alpha='70%'>%s</span>",
+		"<span alpha='40%'>%s</span>",
+		"<span alpha='20%'>%s</span>",
+		"<span alpha='40%'>%s</span>",
+		"<span alpha='70%'>%s</span>",
+		"%s",
 		NULL } },
 };
 

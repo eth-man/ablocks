@@ -3,10 +3,9 @@
  * ablocks - i3bar status command.
  *
  * Each block is a shell command run on an interval. Its stdout is read
- * i3blocks-style: line 1 is full_text, line 2 short_text, line 3 color;
- * lines starting with '@' are reserved for animation directives. Exit code
- * 33 marks the block urgent. Commands run asynchronously, so a slow block
- * never holds up the others.
+ * i3blocks-style: line 1 is full_text, line 2 short_text, line 3 color.
+ * Exit code 33 marks the block urgent. Commands run asynchronously, so a
+ * slow block never holds up the others.
  *
  * SIGRTMIN+n re-runs every block with signal n, SIGUSR1 re-runs them all.
  * A click from i3bar re-runs the block with BLOCK_BUTTON set. A signal or
@@ -14,8 +13,12 @@
  * always ends up showing the state from after the last event.
  *
  * An animation is a list of pango frames wrapped around a block's output,
- * "%s" standing for the output itself. At startup the boot animation plays
- * across the bar as a wave, left to right; SIGUSR2 replays it.
+ * "%s" standing for the output and "%a" for an argument the script passes.
+ * A script asks for one with an output line "@name [ms [arg]]" and keeps
+ * printing it for as long as the animation should recur: it plays `loops`
+ * times, then again every `every` seconds, and stops when the line goes.
+ * Shift+scroll on such a block changes its speed live. At startup the boot
+ * animation runs across the bar as a wave, left to right; SIGUSR2 replays it.
  */
 #include <errno.h>
 #include <fcntl.h>
@@ -31,11 +34,16 @@
 
 #define LENGTH(X) (sizeof(X) / sizeof((X)[0]))
 #define OUTLEN    1024
+#define ARGLEN    256
+#define NAMELEN   32
 #define INLEN     4096
 #define URGENT    33
 #define MAXFRAMES 16
+#define MINMS     20
+#define MAXMS     2000
 
-enum { Once = 0 }; /* interval: run at startup only */
+enum { Once = 0 };       /* Block interval: run at startup only */
+enum { Always = -1 };    /* Anim every: replay as soon as it ends */
 
 typedef struct {
 	const char *name;
@@ -48,7 +56,9 @@ typedef struct {
 typedef struct {
 	const char *name;
 	unsigned int ms;                 /* how long each frame is shown */
-	const char *frames[MAXFRAMES];   /* NULL-terminated; "%s" is the output */
+	int loops;                       /* plays of the frames per burst */
+	int every;                       /* seconds between bursts; 0 = once */
+	const char *frames[MAXFRAMES];   /* NULL-terminated */
 } Anim;
 
 #include "config.h"
@@ -58,22 +68,32 @@ typedef struct {
 	char shrt[OUTLEN];
 	char color[32];
 	int urgent;
-	char buf[OUTLEN]; /* output of the command in flight */
+	char buf[OUTLEN];     /* output of the command in flight */
 	size_t len;
 	pid_t pid;
-	int fd;           /* read end of its stdout; -1 when idle */
-	long long next;   /* monotonic ms of the next run; -1 for never */
-	int pending;      /* re-run as soon as the current run finishes */
-	int pbutton;      /* BLOCK_BUTTON for that re-run */
-	const Anim *anim; /* animation playing, or NULL */
-	long long astart; /* when it starts; frame 0 is held until then */
-	int frame;        /* frame currently drawn */
+	int fd;               /* read end of its stdout; -1 when idle */
+	long long next;       /* monotonic ms of the next run; -1 for never */
+	int pending;          /* re-run as soon as the current run finishes */
+	int pbutton;          /* BLOCK_BUTTON for that re-run */
+
+	const Anim *anim;     /* animation playing, or NULL */
+	long long astart;     /* when it starts; frame 0 is held until then */
+	unsigned int ms;      /* its frame time */
+	int loops;            /* plays of its frames in this burst */
+	int frame;            /* frame currently drawn */
+
+	const Anim *trig;     /* animation the script asks for, or NULL */
+	char want[NAMELEN];   /* name it asked for, known or not */
+	unsigned int trigms;  /* frame time it asked for; 0 for the default */
+	unsigned int speed;   /* frame time set by Shift+scroll; 0 for none */
+	char arg[ARGLEN];     /* "%a" in its frames */
+	long long nextburst;  /* when the next burst starts; -1 for none */
 } State;
 
 static State st[LENGTH(blocks)];
 static int dirty;
 static int drawn;
-static int sigfd[2];          /* self-pipe: signal handler -> main loop */
+static int sigfd[2];            /* self-pipe: signal handler -> main loop */
 static int infd = STDIN_FILENO; /* i3bar's click events; -1 once closed */
 static char inbuf[INLEN];
 static size_t inlen;
@@ -96,11 +116,22 @@ die(const char *s)
 }
 
 static void
+devnull(int fd, int flags)
+{
+	int null;
+
+	if ((null = open("/dev/null", flags)) >= 0 && null != fd) {
+		dup2(null, fd);
+		close(null);
+	}
+}
+
+static void
 run(size_t i, int button)
 {
 	State *s = &st[i];
 	char b[16] = "";
-	int p[2], null;
+	int p[2];
 
 	if (s->fd >= 0)
 		return; /* still running: never stack copies of a slow command */
@@ -119,12 +150,13 @@ run(size_t i, int button)
 		dup2(p[1], STDOUT_FILENO);
 		close(p[1]);
 		/* stdin is i3bar's click stream; the command must not eat it */
-		if ((null = open("/dev/null", O_RDONLY)) >= 0)
-			dup2(null, STDIN_FILENO);
+		devnull(STDIN_FILENO, O_RDONLY);
 		setenv("BLOCK_NAME", blocks[i].name, 1);
 		if (button)
 			snprintf(b, sizeof(b), "%d", button);
 		setenv("BLOCK_BUTTON", b, 1);
+		/* lets a script print "@anim" only where something reads it */
+		setenv("ABLOCKS", "1", 1);
 		execl(shell, shell, "-c", blocks[i].command, (char *)NULL);
 		_exit(127);
 	}
@@ -147,6 +179,67 @@ trigger(size_t i, int button)
 	}
 }
 
+/* Fire and forget; the middle child exits at once so nothing is left to
+ * reap, and stdout is i3bar's pipe so it must not be inherited. */
+static void
+notify(const char *title, const char *body)
+{
+	pid_t pid;
+
+	if ((pid = fork()) == 0) {
+		if (fork() == 0) {
+			devnull(STDOUT_FILENO, O_WRONLY);
+			execlp("notify-send", "notify-send", "-t", "2500", "-h",
+			       "string:x-dunst-stack-tag:ablocks", title, body,
+			       (char *)NULL);
+			_exit(127);
+		}
+		_exit(0);
+	}
+	if (pid > 0)
+		waitpid(pid, NULL, 0);
+}
+
+static const Anim *
+findanim(const char *name)
+{
+	size_t i;
+
+	for (i = 0; name && i < LENGTH(anims); i++)
+		if (!strcmp(anims[i].name, name))
+			return &anims[i];
+	return NULL;
+}
+
+static int
+nframes(const Anim *a)
+{
+	int n = 0;
+
+	while (n < MAXFRAMES && a->frames[n])
+		n++;
+	return n;
+}
+
+static void
+play(State *s, const Anim *a, unsigned int ms, int loops, long long t)
+{
+	s->anim = a;
+	s->ms = ms ? ms : 1;
+	s->loops = loops > 0 ? loops : 1;
+	s->astart = t;
+	s->frame = 0;
+	dirty = 1;
+}
+
+/* Frame time for the block's triggered animation: live speed first, then
+ * what the script asked for, then the animation's own. */
+static unsigned int
+burstms(const State *s)
+{
+	return s->speed ? s->speed : s->trigms ? s->trigms : s->trig->ms;
+}
+
 static void
 setfield(char *dst, size_t size, const char *src, size_t len)
 {
@@ -156,18 +249,57 @@ setfield(char *dst, size_t size, const char *src, size_t len)
 	dst[len] = '\0';
 }
 
+/* Act on an "@name [ms [arg]]" line, or on its absence (line == NULL). */
+static void
+request(size_t i, const char *line)
+{
+	State *s = &st[i];
+	char name[NAMELEN] = "", arg[ARGLEN] = "";
+	unsigned int ms = 0;
+	const Anim *a;
+
+	if (line)
+		sscanf(line, "@%31s %u %255[^\n]", name, &ms, arg);
+	a = findanim(name);
+	if (*name && !a && strcmp(name, s->want))
+		fprintf(stderr, "ablocks: %s: no animation \"%s\"\n",
+		        blocks[i].name, name);
+	strcpy(s->want, name);
+
+	if (a != s->trig) {
+		if (s->anim && s->anim == s->trig) {
+			s->anim = NULL; /* the condition cleared: stop at once */
+			dirty = 1;
+		}
+		s->trig = a;
+		s->speed = 0;
+		s->nextburst = a ? now() : -1;
+	}
+	s->trigms = ms;
+	if (strcmp(arg, s->arg)) {
+		strcpy(s->arg, arg);
+		if (s->anim)
+			dirty = 1;
+	}
+}
+
 /* Split the finished command's output into fields; mark dirty on change. */
 static void
-parse(State *s, int status)
+parse(size_t i, int status)
 {
+	State *s = &st[i];
 	char full[OUTLEN] = "", shrt[OUTLEN] = "", color[32] = "";
+	char at[OUTLEN] = "";
 	char *p = s->buf, *end = s->buf + s->len, *nl;
 	int n = 0, urgent;
 
 	while (p < end) {
 		if (!(nl = memchr(p, '\n', end - p)))
 			nl = end;
-		if (*p != '@') {
+		if (*p == '@') {
+			if (!*at)
+				setfield(at, sizeof(at), p, nl - p);
+		} else {
 			if (n == 0)
 				setfield(full, sizeof(full), p, nl - p);
 			else if (n == 1)
@@ -188,6 +320,7 @@ parse(State *s, int status)
 		s->urgent = urgent;
 		dirty = 1;
 	}
+	request(i, *at ? at : NULL);
 }
 
 static void
@@ -212,11 +345,93 @@ collect(size_t i)
 	close(s->fd);
 	s->fd = -1;
 	waitpid(s->pid, &status, 0);
-	parse(s, status);
+	parse(i, status);
 	if (s->pending) {
 		s->pending = 0;
 		run(i, s->pbutton);
 	}
+}
+
+/* Shift+scroll: up is faster, down is slower. A burst in flight keeps its
+ * place in the frame list rather than jumping. */
+static void
+setspeed(size_t i, int faster)
+{
+	State *s = &st[i];
+	unsigned int ms = burstms(s);
+	char body[96];
+	long long t, f;
+
+	ms = faster ? ms * 4 / 5 : ms * 5 / 4 + 1;
+	ms = ms < MINMS ? MINMS : ms > MAXMS ? MAXMS : ms;
+	if (s->anim && s->anim == s->trig) {
+		t = now();
+		f = t < s->astart ? 0 : (t - s->astart) / s->ms;
+		s->astart = t - f * ms;
+		s->ms = ms;
+	}
+	s->speed = ms;
+	snprintf(body, sizeof(body), "%u ms per frame (default %u)\n"
+	         "Shift+scroll up: faster, down: slower", ms,
+	         s->trigms ? s->trigms : s->trig->ms);
+	notify(s->trig->name, body);
+}
+
+/* Start the boot animation on every visible block, each a little after its
+ * left neighbour so it runs across the bar as a wave. */
+static void
+boot(long long t)
+{
+	const Anim *a = findanim(bootanim);
+	size_t i, k = 0;
+
+	if (!a || !nframes(a))
+		return;
+	for (i = 0; i < LENGTH(blocks); i++) {
+		if (!st[i].full[0])
+			continue;
+		play(&st[i], a, a->ms, a->loops, t + (long long)k++ * bootstagger);
+		/* the wave cut any burst short: replay it once the wave passes */
+		if (st[i].trig)
+			st[i].nextburst = t;
+	}
+}
+
+/* Bring every animation up to time t, starting bursts that are due; return
+ * ms until anything next changes, or -1 when nothing will. */
+static long long
+animate(long long t)
+{
+	State *s;
+	long long w = -1, at;
+	size_t i;
+	int f, n;
+
+	for (i = 0; i < LENGTH(blocks); i++) {
+		s = &st[i];
+		if (!s->anim && s->trig && s->nextburst >= 0 && s->nextburst <= t) {
+			play(s, s->trig, burstms(s), s->trig->loops, t);
+			s->nextburst = s->trig->every > 0 ? t + s->trig->every * 1000LL
+			             : s->trig->every == Always ? t : -1;
+		}
+		if (!s->anim) {
+			at = s->trig ? s->nextburst : -1;
+		} else if ((n = nframes(s->anim) * s->loops) == 0 ||
+		           (f = t < s->astart ? 0 : (t - s->astart) / s->ms) >= n) {
+			s->anim = NULL;
+			dirty = 1;
+			at = s->trig ? s->nextburst : -1;
+		} else {
+			if (f % nframes(s->anim) != s->frame) {
+				s->frame = f % nframes(s->anim);
+				dirty = 1;
+			}
+			at = s->astart + (long long)(f + 1) * s->ms;
+		}
+		if (at >= 0 && (w < 0 || at - t < w))
+			w = at - t < 0 ? 0 : at - t;
+	}
+	return w;
 }
 
 static void
@@ -313,12 +528,20 @@ click(const char *obj)
 {
 	char name[64], button[16];
 	size_t i;
+	int b;
 
 	jsonget(obj, "name", name, sizeof(name));
 	jsonget(obj, "button", button, sizeof(button));
-	for (i = 0; i < LENGTH(blocks); i++)
-		if (!strcmp(blocks[i].name, name))
-			trigger(i, atoi(button));
+	b = atoi(button);
+	for (i = 0; i < LENGTH(blocks); i++) {
+		if (strcmp(blocks[i].name, name))
+			continue;
+		/* the modifiers array holds "Shift" while it is held */
+		if (st[i].trig && (b == 4 || b == 5) && strstr(obj, "\"Shift\""))
+			setspeed(i, b == 4);
+		else
+			trigger(i, b);
+	}
 }
 
 /* i3bar sends "[" and then one click object per line, each after the
@@ -348,93 +571,28 @@ readclicks(void)
 		inlen = 0; /* a line that long is not a click: drop it */
 }
 
-static const Anim *
-findanim(const char *name)
-{
-	size_t i;
-
-	for (i = 0; name && i < LENGTH(anims); i++)
-		if (!strcmp(anims[i].name, name))
-			return &anims[i];
-	return NULL;
-}
-
-static int
-nframes(const Anim *a)
-{
-	int n = 0;
-
-	while (n < MAXFRAMES && a->frames[n])
-		n++;
-	return n;
-}
-
-/* Start the boot animation on every visible block, each a little after its
- * left neighbour so it runs across the bar as a wave. */
+/* Copy frame into dst, "%s" becoming the output and "%a" the argument. */
 static void
-boot(long long t)
+subst(char *dst, size_t size, const char *frame, const char *out,
+      const char *arg)
 {
-	const Anim *a = findanim(bootanim);
-	size_t i, k = 0;
-
-	if (!a || !nframes(a))
-		return;
-	for (i = 0; i < LENGTH(blocks); i++) {
-		if (!st[i].full[0])
-			continue;
-		st[i].anim = a;
-		st[i].astart = t + (long long)k++ * bootstagger;
-		st[i].frame = 0;
-	}
-	dirty = 1;
-}
-
-/* Bring every animation up to time t; return ms until the next frame
- * change anywhere, or -1 when nothing is animating. */
-static long long
-animate(long long t)
-{
-	State *s;
-	long long w = -1, at;
-	size_t i;
-	int f;
-
-	for (i = 0; i < LENGTH(blocks); i++) {
-		s = &st[i];
-		if (!s->anim)
-			continue;
-		f = t < s->astart ? 0 : (t - s->astart) / s->anim->ms;
-		if (f >= nframes(s->anim)) {
-			s->anim = NULL;
-			dirty = 1;
-			continue;
-		}
-		if (f != s->frame) {
-			s->frame = f;
-			dirty = 1;
-		}
-		at = s->astart + (long long)(f + 1) * s->anim->ms;
-		if (w < 0 || at - t < w)
-			w = at - t;
-	}
-	return w;
-}
-
-/* Copy fmt into dst with every "%s" replaced by s. */
-static void
-subst(char *dst, size_t size, const char *fmt, const char *s)
-{
+	const char *r;
 	size_t n = 0, l;
 
-	while (*fmt && n + 1 < size) {
-		if (fmt[0] == '%' && fmt[1] == 's') {
-			if ((l = strlen(s)) > size - 1 - n)
+	while (*frame && n + 1 < size) {
+		r = NULL;
+		if (frame[0] == '%' && frame[1] == 's')
+			r = out;
+		else if (frame[0] == '%' && frame[1] == 'a')
+			r = arg;
+		if (r) {
+			if ((l = strlen(r)) > size - 1 - n)
 				l = size - 1 - n;
-			memcpy(dst + n, s, l);
+			memcpy(dst + n, r, l);
 			n += l;
-			fmt += 2;
+			frame += 2;
 		} else {
-			dst[n++] = *fmt++;
+			dst[n++] = *frame++;
 		}
 	}
 	dst[n] = '\0';
@@ -475,7 +633,8 @@ draw(void)
 		jsonstr(blocks[i].name);
 		fputs(",\"full_text\":", stdout);
 		if (st[i].anim) {
-			subst(text, sizeof(text), st[i].anim->frames[st[i].frame], st[i].full);
+			subst(text, sizeof(text), st[i].anim->frames[st[i].frame],
+			      st[i].full, st[i].arg);
 			jsonstr(text);
 		} else {
 			jsonstr(st[i].full);
@@ -511,6 +670,7 @@ main(void)
 	for (i = 0; i < LENGTH(blocks); i++) {
 		st[i].fd = -1;
 		st[i].next = 0;
+		st[i].nextburst = -1;
 	}
 	setupsignals();
 	if (bootanim)

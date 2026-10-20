@@ -37,7 +37,7 @@ i3blocks way:
     line 1   full_text
     line 2   short_text
     line 3   color
-    @...     reserved for animation directives
+    @...     animation request, see below
 
 Exit code 33 marks the block urgent. A block with empty output is hidden.
 
@@ -45,13 +45,33 @@ Exit code 33 marks the block urgent. A block with empty output is hidden.
 Animations
 ----------
 An animation in config.h is a list of pango frames wrapped around a
-block's output, "%s" standing for the output itself. Use alpha (fades
-without touching the script's own colours) and rise (moves the text
-without changing its width), so the bar never shifts while one plays.
+block's output: "%s" is the output itself, "%a" an argument from the
+script. Use alpha (fades without touching the script's own colours) and
+rise (moves the text without changing its width), so the bar never shifts
+while one plays.
+
+A script asks for an animation by printing an extra line:
+
+    @name [ms [arg]]
+
+and keeps printing it for as long as the condition holds. The animation
+plays `loops` times, then again every `every` seconds, and stops as soon
+as the line goes. ms overrides the frame time (0 keeps the default).
+ablocks sets ABLOCKS=1 for its scripts; test it before printing the line,
+since i3blocks would show it as the block's short text:
+
+    if [ -n "$ABLOCKS" ] && [ "$capacity" -le 20 ]; then
+        echo "@lowbat 0 $capacity%"
+    fi
+
+Shift+scroll on such a block changes its speed live, and a notification
+shows the new frame time to copy into config.h. Plain scrolling still
+goes to the script.
 
 Each time ablocks starts, i.e. on every i3 restart, bootanim plays across
-the bar as a wave, one block after another from left to right. Replay it
-with:
+the bar as a wave, one block after another from left to right; a block
+with an animation requested plays it straight after its turn. Replay the
+wave with:
 
     pkill -USR2 -x ablocks
 
