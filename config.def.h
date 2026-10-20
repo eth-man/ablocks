@@ -6,8 +6,9 @@ static const char shell[] = "/bin/sh";
 /* "pango" or "none"; applied to every block */
 static const char markup[] = "pango";
 
-/* pixels between blocks; i3bar's default clips the rightmost block */
-static const int sepwidth = 8;
+/* pixels between blocks. Drawn as plain space, no separator lines: even
+ * gaps read calmer than a rule between every pair. */
+static const int sepwidth = 24;
 
 /* Animations: pango frames wrapped around a block's output. In a frame, "%s"
  * is the block's own output, "%a" the argument from the script's
@@ -109,28 +110,28 @@ static const unsigned int bootstagger = 80; /* ms between neighbouring blocks */
 
 static const Block blocks[] = {
 	/* name                 command                             interval  signal  separator */
-	{ "failed",             SB "failed",                        60,       15,     1 },
-	{ "record",             "cat /tmp/recordingicon",           Once,     9,      1 },
+	{ "failed",             SB "failed",                        60,       15,     0 },
+	{ "record",             "cat /tmp/recordingicon",           Once,     9,      0 },
 	{ "spotifyControls",    SB "spotifyControls",               10,       19,     0 },
-	{ "spotifyPlay",        SB "spotifyPlay",                   1,        0,      1 },
-	{ "screen-timeout",     SB "screen-timeout",                10,       0,      1 },
-	{ "music",              SB "music",                         Once,     11,     1 },
-	{ "news",               SB "news",                          Once,     6,      1 },
-	{ "pacpackages",        SB "pacpackages",                   Once,     8,      1 },
-	{ "tasks",              SB "tasks",                         10,       16,     1 },
-	{ "torrent",            SB "torrent",                       20,       7,      1 },
-	{ "weather",            SB "weather",                       18000,    5,      1 },
-	{ "mailbox",            SB "mailbox",                       180,      12,     1 },
-	{ "cpu",                SB "cpu",                           15,       0,      1 },
-	{ "volume",             SB "volume",                        Once,     10,     1 },
-	{ "brightness",         SB "brightness",                    5,        13,     1 },
-	{ "battery",            SB "battery BAT0",                  5,        0,      1 },
-	{ "clock",              SB "clock",                         30,       0,      1 },
-	{ "gitcheck",           SB "gitcheck",                      300,      14,     1 },
-	{ "sb-bluetooth",       SB "sb-bluetooth",                  5,        17,     1 },
-	{ "nettraf",            SB "nettraf",                       2,        0,      1 },
-	{ "ping-lat",           SB "ping-lat",                      60,       18,     1 },
-	{ "vpn",                SB "vpn",                           60,       3,      1 },
-	{ "internet",           SB "internet",                      10,       20,     1 },
-	{ "i3-keyboardlayout",  SB "i3-keyboard-layout i3status",   10,       30,     1 },
+	{ "spotifyPlay",        SB "spotifyPlay",                   1,        0,      0 },
+	{ "screen-timeout",     SB "screen-timeout",                10,       0,      0 },
+	{ "music",              SB "music",                         Once,     11,     0 },
+	{ "news",               SB "news",                          Once,     6,      0 },
+	{ "pacpackages",        SB "pacpackages",                   Once,     8,      0 },
+	{ "tasks",              SB "tasks",                         10,       16,     0 },
+	{ "torrent",            SB "torrent",                       20,       7,      0 },
+	{ "weather",            SB "weather",                       18000,    5,      0 },
+	{ "mailbox",            SB "mailbox",                       180,      12,     0 },
+	{ "cpu",                SB "cpu",                           15,       0,      0 },
+	{ "volume",             SB "volume",                        Once,     10,     0 },
+	{ "brightness",         SB "brightness",                    5,        13,     0 },
+	{ "battery",            SB "battery BAT0",                  5,        0,      0 },
+	{ "clock",              SB "clock",                         30,       0,      0 },
+	{ "gitcheck",           SB "gitcheck",                      300,      14,     0 },
+	{ "sb-bluetooth",       SB "sb-bluetooth",                  5,        17,     0 },
+	{ "nettraf",            SB "nettraf",                       2,        0,      0 },
+	{ "ping-lat",           SB "ping-lat",                      60,       18,     0 },
+	{ "vpn",                SB "vpn",                           60,       3,      0 },
+	{ "internet",           SB "internet",                      10,       20,     0 },
+	{ "i3-keyboardlayout",  SB "i3-keyboard-layout i3status",   10,       30,     0 },
 };
