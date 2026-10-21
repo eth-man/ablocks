@@ -54,6 +54,13 @@ static const Anim anims[] = {
 		"<span color='#DC143C'>\U0010003D %a</span>",
 		"<span color='#DC143C'><span alpha='15%'>\U0010003D</span> %a</span>",
 		NULL } },
+	/* CPU at or over its alert temperature: only the icon blinks, the
+	 * temperature stays put, for as long as the script asks (Always), i.e.
+	 * until it cools down. %a = "85C" */
+	{ "cpuhot", 500, 1,     Always, {
+		"<span color='#DC143C'>\U00100024 %a</span>",
+		"<span color='#DC143C'><span alpha='15%'>\U00100024</span> %a</span>",
+		NULL } },
 	/* charger plugged in: the battery fills, then the bolt pulses, in
 	 * purple, once. %a = "59%" */
 	{ "plugin", 180, 1,     0, {
