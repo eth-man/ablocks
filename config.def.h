@@ -59,14 +59,14 @@ static const Anim anims[] = {
 	 * for as long as the script asks (Always). %a = "9%" */
 	{ "batcrit", 500, 1,    Always, {
 		"<span color='#DC143C'>\U0010003D %a</span>",
-		"<span color='#DC143C'><span color='#210309'>\U0010003D</span> %a</span>",
+		"<span color='#DC143C'><span color='#550817'>\U0010003D</span> %a</span>",
 		NULL } },
 	/* CPU at or over its alert temperature: only the icon blinks, the
 	 * temperature stays put, for as long as the script asks (Always), i.e.
 	 * until it cools down. %a = "85C" */
 	{ "cpuhot", 500, 1,     Always, {
 		"<span color='#DC143C'>\U00100024 %a</span>",
-		"<span color='#DC143C'><span color='#210309'>\U00100024</span> %a</span>",
+		"<span color='#DC143C'><span color='#550817'>\U00100024</span> %a</span>",
 		NULL } },
 	/* brightness changed: the percentage shows beside the icon for 1.5s,
 	 * then fades out and leaves the bare icon. Each new level restarts it.
@@ -141,9 +141,9 @@ static const Anim anims[] = {
 		"<span color='#bb86fc'>\U00100008 %a</span>",
 		"<span color='#bb86fc'>\U0010000A %a</span>",
 		"<span color='#bb86fc'>\U0010000B %a</span>",
-		"<span color='#bb86fc'><span color='#412f58'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span color='#6f4f95'>\U0010000B</span> %a</span>",
 		"<span color='#bb86fc'>\U0010000B %a</span>",
-		"<span color='#bb86fc'><span color='#412f58'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span color='#6f4f95'>\U0010000B</span> %a</span>",
 		"<span color='#bb86fc'>\U0010000B %a</span>",
 		NULL } },
 	/* charger pulled: the bolt fades away, then the block's own icon
@@ -152,9 +152,9 @@ static const Anim anims[] = {
 	 * %a = "59%" */
 	{ "unplug", 180, 1,     0, {
 		"<span color='#bb86fc'>\U0010000B %a</span>",
-		"<span color='#bb86fc'><span color='#7a57a4'>\U0010000B</span> %a</span>",
-		"<span color='#bb86fc'><span color='#412f58'>\U0010000B</span> %a</span>",
-		"<span color='#bb86fc'><span color='#16101e'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span color='#976ccb'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span color='#6f4f95'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span color='#412e57'>\U0010000B</span> %a</span>",
 		HOP("-4000", "4000"),
 		HOP("-1500", "1500"),
 		HOP("500", "-500"),
@@ -187,7 +187,7 @@ static const Anim anims[] = {
 		NULL } },
 	/* wifi bars sweeping, as if scanning: played on a click. Only the icon
 	 * changes; %a = the rest of the block exactly as the script prints it */
-	{ "wifiscan", 70, 2,    0, {
+	{ "wifiscan", 110, 2,   0, {
 		"<span color='#83a598'>\U0010000D</span>%a",
 		"<span color='#83a598'>\U0010000E</span>%a",
 		"<span color='#83a598'>\U0010000F</span>%a",
@@ -195,7 +195,7 @@ static const Anim anims[] = {
 		NULL } },
 	/* wifi bars filling up, green, once on reconnect, while the signal
 	 * strength counts up to its value. %n = "92% " and the LAN icon */
-	{ "wifiup", 100, 3,     0, {
+	{ "wifiup", 140, 3,     0, {
 		"<span color='#90EE90'>\U0010000D %n</span>",
 		"<span color='#90EE90'>\U0010000E %n</span>",
 		"<span color='#90EE90'>\U0010000F %n</span>",
@@ -204,7 +204,7 @@ static const Anim anims[] = {
 	/* the same without the percentage, when the block hides it. Its own
 	 * animation because %n would count the first number it finds, and with
 	 * no percentage that is one in the LAN icon's colour. %a = the LAN icon */
-	{ "wifiupicon", 100, 3, 0, {
+	{ "wifiupicon", 140, 3, 0, {
 		"<span color='#90EE90'>\U0010000D</span>%a",
 		"<span color='#90EE90'>\U0010000E</span>%a",
 		"<span color='#90EE90'>\U0010000F</span>%a",
@@ -250,8 +250,8 @@ static const Anim anims[] = {
 	NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), \
 	NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), \
 	NULL }
-	{ "nettraf",    80, 1,  Always, NTFRAMES("#83a598", "#6f8c81", "#485b54", "#1a211e") },
-	{ "nettrafmax", 80, 1,  Always, NTFRAMES("#e8cb61", "#c5ad52", "#807035", "#2e2913") },
+	{ "nettraf",    80, 1,  Always, NTFRAMES("#83a598", "#79988c", "#617a71", "#3b4a44") },
+	{ "nettrafmax", 80, 1,  Always, NTFRAMES("#e8cb61", "#d6bb59", "#ac9748", "#685b2b") },
 	/* the same for a block hiding its rates, kept to its two arrows: after
 	 * the motion the rate, field 9, covers both of them, counting up.
 	 * letter_spacing stretches its 4 characters (44px at mono 14) to the
@@ -282,12 +282,12 @@ static const Anim anims[] = {
 	NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), \
 	NULL }
 #define NTNUM(c, p) "<span color='" c "' letter_spacing='342'>%{9 " p "}</span>"
-	{ "nettrafmini",    80, 1, Always, NTMINI("#83a598", "#6f8c81", "#485b54", "#1a211e") },
-	{ "nettrafminimax", 80, 1, Always, NTMINI("#e8cb61", "#c5ad52", "#807035", "#2e2913") },
+	{ "nettrafmini",    80, 1, Always, NTMINI("#83a598", "#79988c", "#617a71", "#3b4a44") },
+	{ "nettrafminimax", 80, 1, Always, NTMINI("#e8cb61", "#d6bb59", "#ac9748", "#685b2b") },
 	/* a weather threshold crossed: only the icons over it move, the drop
 	 * falling twice, the snowflake drifting down and the sun pulsing, for
-	 * 3.6s; then each is replaced by its number, counting up from 0, fast
-	 * and slowing, for 1.2s, held for 1s, and the icons come back. Every five
+	 * 2.2s; then each is replaced by its number, counting up from 0, fast
+	 * and slowing, for 0.7s, held for 1s, and the icons come back. Every five
 	 * minutes until a middle click. The script passes three tab-separated
 	 * fields per icon, rain, cold and heat in order: the icon if it keeps
 	 * still, the icon if it moves, and its number, each with the space after
@@ -302,34 +302,35 @@ static const Anim anims[] = {
 	"%4<span color='#83a598'>%{6 " p "}</span>" \
 	"%7<span color='#e8cb61'>%{9 " p "}</span>"
 #define WXHOLD WXCOUNT("100")
-	{ "weather", 150, 1,    300, {
-		WXMOVE("color='#1a211e' rise='6000'", "color='#141917' rise='6000'", "color='#e8cb61'"),
-		WXMOVE("color='#27322e' rise='5900'", "color='#1e2623' rise='5600'", "color='#dcc15c'"),
-		WXMOVE("color='#34423d' rise='5600'", "color='#29332f' rise='5200'", "color='#baa24e'"),
-		WXMOVE("color='#42524c' rise='5200'", "color='#33403b' rise='4800'", "color='#8b7a3a'"),
-		WXMOVE("color='#4f635b' rise='4500'", "color='#3f4f49' rise='4400'", "color='#5d5127'"),
-		WXMOVE("color='#5c736a' rise='3700'", "color='#495c55' rise='4100'", "color='#3a3318'"),
-		WXMOVE("color='#69847a' rise='2600'", "color='#546a61' rise='3700'", "color='#2e2913'"),
-		WXMOVE("color='#769489' rise='1400'", "color='#5e776d' rise='3400'", "color='#3a3318'"),
-		WXMOVE("color='#83a598' rise='0'", "color='#69847a' rise='3000'", "color='#5d5127'"),
-		WXMOVE("color='#83a598' rise='-1500'", "color='#739186' rise='2700'", "color='#8b7a3a'"),
-		WXMOVE("color='#83a598' rise='-600'", "color='#7e9e92' rise='2400'", "color='#baa24e'"),
-		WXMOVE("color='#83a598' rise='0'", "color='#83a598' rise='2100'", "color='#dcc15c'"),
-		WXMOVE("color='#1a211e' rise='6000'", "color='#83a598' rise='1800'", "color='#e8cb61'"),
-		WXMOVE("color='#27322e' rise='5900'", "color='#83a598' rise='1600'", "color='#dcc15c'"),
-		WXMOVE("color='#34423d' rise='5600'", "color='#83a598' rise='1300'", "color='#baa24e'"),
-		WXMOVE("color='#42524c' rise='5200'", "color='#83a598' rise='1100'", "color='#8b7a3a'"),
-		WXMOVE("color='#4f635b' rise='4500'", "color='#83a598' rise='900'", "color='#5d5127'"),
-		WXMOVE("color='#5c736a' rise='3700'", "color='#83a598' rise='700'", "color='#3a3318'"),
-		WXMOVE("color='#69847a' rise='2600'", "color='#83a598' rise='500'", "color='#2e2913'"),
-		WXMOVE("color='#769489' rise='1400'", "color='#83a598' rise='400'", "color='#3a3318'"),
-		WXMOVE("color='#83a598' rise='0'", "color='#83a598' rise='200'", "color='#5d5127'"),
-		WXMOVE("color='#83a598' rise='-1500'", "color='#83a598' rise='100'", "color='#8b7a3a'"),
-		WXMOVE("color='#83a598' rise='-600'", "color='#83a598' rise='0'", "color='#baa24e'"),
-		WXMOVE("color='#83a598' rise='0'", "color='#83a598' rise='0'", "color='#dcc15c'"),
+	{ "weather", 90,  1,    300, {
+		WXMOVE("color='#3b4a44' rise='6000'", "color='#33403b' rise='6000'", "color='#e8cb61'"),
+		WXMOVE("color='#485a53' rise='5900'", "color='#3f4f49' rise='5600'", "color='#e2c65f'"),
+		WXMOVE("color='#536860' rise='5600'", "color='#495c55' rise='5200'", "color='#d0b657'"),
+		WXMOVE("color='#5d756b' rise='5200'", "color='#52675f' rise='4800'", "color='#b49d4b'"),
+		WXMOVE("color='#658076' rise='4500'", "color='#5b7269' rise='4400'", "color='#93803d'"),
+		WXMOVE("color='#6e8a7f' rise='3700'", "color='#627b72' rise='4100'", "color='#746630'"),
+		WXMOVE("color='#759488' rise='2600'", "color='#69847a' rise='3700'", "color='#685b2b'"),
+		WXMOVE("color='#7c9d90' rise='1400'", "color='#6f8c81' rise='3400'", "color='#746630'"),
+		WXMOVE("color='#83a598' rise='0'", "color='#759488' rise='3000'", "color='#93803d'"),
+		WXMOVE("color='#83a598' rise='-1500'", "color='#7b9b8f' rise='2700'", "color='#b49d4b'"),
+		WXMOVE("color='#83a598' rise='-600'", "color='#80a295' rise='2400'", "color='#d0b657'"),
+		WXMOVE("color='#83a598' rise='0'", "color='#83a598' rise='2100'", "color='#e2c65f'"),
+		WXMOVE("color='#3b4a44' rise='6000'", "color='#83a598' rise='1800'", "color='#e8cb61'"),
+		WXMOVE("color='#485a53' rise='5900'", "color='#83a598' rise='1600'", "color='#e2c65f'"),
+		WXMOVE("color='#536860' rise='5600'", "color='#83a598' rise='1300'", "color='#d0b657'"),
+		WXMOVE("color='#5d756b' rise='5200'", "color='#83a598' rise='1100'", "color='#b49d4b'"),
+		WXMOVE("color='#658076' rise='4500'", "color='#83a598' rise='900'", "color='#93803d'"),
+		WXMOVE("color='#6e8a7f' rise='3700'", "color='#83a598' rise='700'", "color='#746630'"),
+		WXMOVE("color='#759488' rise='2600'", "color='#83a598' rise='500'", "color='#685b2b'"),
+		WXMOVE("color='#7c9d90' rise='1400'", "color='#83a598' rise='400'", "color='#746630'"),
+		WXMOVE("color='#83a598' rise='0'", "color='#83a598' rise='200'", "color='#93803d'"),
+		WXMOVE("color='#83a598' rise='-1500'", "color='#83a598' rise='100'", "color='#b49d4b'"),
+		WXMOVE("color='#83a598' rise='-600'", "color='#83a598' rise='0'", "color='#d0b657'"),
+		WXMOVE("color='#83a598' rise='0'", "color='#83a598' rise='0'", "color='#e2c65f'"),
 		WXCOUNT("0"), WXCOUNT("37"), WXCOUNT("64"), WXCOUNT("82"),
 		WXCOUNT("92"), WXCOUNT("97"), WXCOUNT("99"), WXCOUNT("100"),
 		WXHOLD, WXHOLD, WXHOLD, WXHOLD, WXHOLD, WXHOLD, WXHOLD,
+		WXHOLD, WXHOLD, WXHOLD, WXHOLD, WXHOLD,
 		NULL } },
 	/* every number for 2.5s, once: a middle click with no alert showing.
 	 * %a = the block with its numbers */
@@ -344,14 +345,14 @@ static const Anim anims[] = {
 	 * moving digits fade through darker shades of the text colour. */
 #define FLIP(d, r, counter, c) "<span color='%1'>%2<b>%3<span rise='" r "' color='" c "'>" d "</span></b></span><span rise='" counter "'>\u200B</span>"
 	{ "clockflip", 45, 1,   0, {
-		FLIP("%4", "-1200", "1200", "#b8bdc6"),
-		FLIP("%4", "-3000", "3000", "#82858c"),
-		FLIP("%4", "-5500", "5500", "#4c4e52"),
-		FLIP("%4", "-8000", "8000", "#161617"),
-		FLIP("%5", "8000", "-8000", "#161617"),
-		FLIP("%5", "5500", "-5500", "#4c4e52"),
-		FLIP("%5", "3000", "-3000", "#82858c"),
-		FLIP("%5", "1200", "-1200", "#b8bdc6"),
+		FLIP("%4", "-1200", "1200", "#c7cdd7"),
+		FLIP("%4", "-3000", "3000", "#a7acb4"),
+		FLIP("%4", "-5500", "5500", "#80838a"),
+		FLIP("%4", "-8000", "8000", "#44464a"),
+		FLIP("%5", "8000", "-8000", "#44464a"),
+		FLIP("%5", "5500", "-5500", "#80838a"),
+		FLIP("%5", "3000", "-3000", "#a7acb4"),
+		FLIP("%5", "1200", "-1200", "#c7cdd7"),
 		FLIP("%5", "0", "0", "%1"),
 		FLIP("%5", "-900", "900", "%1"),
 		FLIP("%5", "-300", "300", "%1"),
