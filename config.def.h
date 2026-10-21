@@ -14,16 +14,23 @@ static const int sepwidth = 24;
  * is the block's own output, "%a" the argument from the script's
  * "@name [ms [arg]]" line, "%n" that argument with its first number
  * counting up from 0 over the burst, padded so the width never changes, and
- * "%1".."%9" the argument's tab-separated fields. alpha fades without touching the script's
- * colours and rise moves text without changing its width, so neighbouring
- * blocks never shift. Needs markup = "pango".
+ * "%1".."%9" the argument's tab-separated fields. rise moves text without changing its
+ * width, so neighbouring blocks never shift. Fade with darker colours, not
+ * alpha: on a transparent bar the compositor shows alpha text far brighter
+ * than meant. Needs markup = "pango".
  *
  * ms     frame time; a script's "@name ms" or Shift+scroll overrides it
  * loops  plays of the frame list per burst
  * every  seconds from one burst to the next while the script keeps asking;
  *        0 plays once each time the request appears, Always never pauses */
 static const Anim anims[] = {
+	/* the whole block moved up by r. The bar centres a block by its
+	 * height, which rise stretches, so on its own the block would not move
+	 * at all: an invisible zero-width space sinks by as much to hold it. */
+#define HOP(r, nr) "<span rise='" r "'>%s</span><span rise='" nr "'>\u200B</span>"
 	/* name     ms   loops  every   frames */
+	/* the one fade left in alpha: each block fading in as the wave
+	 * reaches it, which on a transparent bar shows as a quick flash */
 	{ "boot",   40,  1,     0, {
 		"<span alpha='1%' rise='-4000'>%s</span>",   /* held until its turn */
 		"<span alpha='25%' rise='-2500'>%s</span>",
@@ -52,14 +59,14 @@ static const Anim anims[] = {
 	 * for as long as the script asks (Always). %a = "9%" */
 	{ "batcrit", 500, 1,    Always, {
 		"<span color='#DC143C'>\U0010003D %a</span>",
-		"<span color='#DC143C'><span alpha='15%'>\U0010003D</span> %a</span>",
+		"<span color='#DC143C'><span color='#210309'>\U0010003D</span> %a</span>",
 		NULL } },
 	/* CPU at or over its alert temperature: only the icon blinks, the
 	 * temperature stays put, for as long as the script asks (Always), i.e.
 	 * until it cools down. %a = "85C" */
 	{ "cpuhot", 500, 1,     Always, {
 		"<span color='#DC143C'>\U00100024 %a</span>",
-		"<span color='#DC143C'><span alpha='15%'>\U00100024</span> %a</span>",
+		"<span color='#DC143C'><span color='#210309'>\U00100024</span> %a</span>",
 		NULL } },
 	/* brightness changed: the percentage shows beside the icon for 1.5s,
 	 * then fades out and leaves the bare icon. Each new level restarts it.
@@ -134,42 +141,39 @@ static const Anim anims[] = {
 		"<span color='#bb86fc'>\U00100008 %a</span>",
 		"<span color='#bb86fc'>\U0010000A %a</span>",
 		"<span color='#bb86fc'>\U0010000B %a</span>",
-		"<span color='#bb86fc'><span alpha='35%'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span color='#412f58'>\U0010000B</span> %a</span>",
 		"<span color='#bb86fc'>\U0010000B %a</span>",
-		"<span color='#bb86fc'><span alpha='35%'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span color='#412f58'>\U0010000B</span> %a</span>",
 		"<span color='#bb86fc'>\U0010000B %a</span>",
 		NULL } },
 	/* charger pulled: the bolt fades away, then the block's own icon
-	 * fades back in, once; the reverse of plugin. %a = "59%" */
+	 * rises back into place, once; the reverse of plugin. The block's
+	 * colour is the script's, so this one moves and doesn't fade.
+	 * %a = "59%" */
 	{ "unplug", 180, 1,     0, {
 		"<span color='#bb86fc'>\U0010000B %a</span>",
-		"<span color='#bb86fc'><span alpha='65%'>\U0010000B</span> %a</span>",
-		"<span color='#bb86fc'><span alpha='35%'>\U0010000B</span> %a</span>",
-		"<span color='#bb86fc'><span alpha='12%'>\U0010000B</span> %a</span>",
-		"<span alpha='30%'>%s</span>",
-		"<span alpha='60%'>%s</span>",
-		"<span alpha='85%'>%s</span>",
+		"<span color='#bb86fc'><span color='#7a57a4'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span color='#412f58'>\U0010000B</span> %a</span>",
+		"<span color='#bb86fc'><span color='#16101e'>\U0010000B</span> %a</span>",
+		HOP("-4000", "4000"),
+		HOP("-1500", "1500"),
+		HOP("500", "-500"),
+		"%s",
 		NULL } },
+	/* the block blinks, three times. A frame can't recolour the script's
+	 * own colours, so it passes its text without them. %a = the text */
 	{ "blink",  400, 3,     0, {
 		"%s",
-		"<span alpha='15%'>%s</span>",
-		NULL } },
-	{ "pulse",  90,  2,     60, {
-		"<span alpha='70%'>%s</span>",
-		"<span alpha='40%'>%s</span>",
-		"<span alpha='20%'>%s</span>",
-		"<span alpha='40%'>%s</span>",
-		"<span alpha='70%'>%s</span>",
-		"%s",
+		"<span color='#30343d'>%a</span>",
 		NULL } },
 	{ "bounce", 60,  2,     0, {
-		"<span rise='0'>%s</span>",
-		"<span rise='3000'>%s</span>",
-		"<span rise='5000'>%s</span>",
-		"<span rise='3000'>%s</span>",
-		"<span rise='0'>%s</span>",
-		"<span rise='-1200'>%s</span>",
-		"<span rise='0'>%s</span>",
+		"%s",
+		HOP("3000", "-3000"),
+		HOP("5000", "-5000"),
+		HOP("3000", "-3000"),
+		"%s",
+		HOP("-1200", "1200"),
+		"%s",
 		NULL } },
 	/* wifi bars draining to off, red; repeats while the script keeps
 	 * asking, i.e. while offline. %a = the rest of the block (LAN icon) */
@@ -217,60 +221,60 @@ static const Anim anims[] = {
 	 * zero-width space rising the other way keeps the block's height, so
 	 * the bar does not bob it; it comes after the text, which as the
 	 * arrow's neighbour keeps the space it has while the arrow is still. */
-#define NTMOVE(c, r, nr, a) \
-	"%1<span color='" c "' rise='" r "' alpha='" a "'>%2</span>%4<span rise='" nr "'>\u200B</span>" \
-	"%5<span color='" c "' rise='" nr "' alpha='" a "'>%6</span>%8<span rise='" r "'>\u200B</span>"
+#define NTMOVE(c, r, nr) \
+	"%1<span color='" c "' rise='" r "'>%2</span>%4<span rise='" nr "'>\u200B</span>" \
+	"%5<span color='" c "' rise='" nr "'>%6</span>%8<span rise='" r "'>\u200B</span>"
 #define NTCOUNT(c, p) \
 	"%1<span color='" c "'>%{3 " p "}</span>%5<span color='" c "'>%{7 " p "}</span>"
-#define NTFRAMES(c) { \
-	NTMOVE(c, "6000", "-6000", "20%"), \
-	NTMOVE(c, "4000", "-4000", "55%"), \
-	NTMOVE(c, "2000", "-2000", "85%"), \
-	NTMOVE(c, "0", "0", "100%"), \
-	NTMOVE(c, "-2000", "2000", "85%"), \
-	NTMOVE(c, "-4000", "4000", "55%"), \
-	NTMOVE(c, "-6000", "6000", "20%"), \
-	NTMOVE(c, "6000", "-6000", "20%"), \
-	NTMOVE(c, "4000", "-4000", "55%"), \
-	NTMOVE(c, "2000", "-2000", "85%"), \
-	NTMOVE(c, "0", "0", "100%"), \
-	NTMOVE(c, "-2000", "2000", "85%"), \
-	NTMOVE(c, "-4000", "4000", "55%"), \
-	NTMOVE(c, "-6000", "6000", "20%"), \
-	NTMOVE(c, "6000", "-6000", "20%"), \
-	NTMOVE(c, "4000", "-4000", "55%"), \
-	NTMOVE(c, "2000", "-2000", "85%"), \
-	NTMOVE(c, "0", "0", "100%"), \
+#define NTFRAMES(c, c85, c55, c20) { \
+	NTMOVE(c20, "6000", "-6000"), \
+	NTMOVE(c55, "4000", "-4000"), \
+	NTMOVE(c85, "2000", "-2000"), \
+	NTMOVE(c, "0", "0"), \
+	NTMOVE(c85, "-2000", "2000"), \
+	NTMOVE(c55, "-4000", "4000"), \
+	NTMOVE(c20, "-6000", "6000"), \
+	NTMOVE(c20, "6000", "-6000"), \
+	NTMOVE(c55, "4000", "-4000"), \
+	NTMOVE(c85, "2000", "-2000"), \
+	NTMOVE(c, "0", "0"), \
+	NTMOVE(c85, "-2000", "2000"), \
+	NTMOVE(c55, "-4000", "4000"), \
+	NTMOVE(c20, "-6000", "6000"), \
+	NTMOVE(c20, "6000", "-6000"), \
+	NTMOVE(c55, "4000", "-4000"), \
+	NTMOVE(c85, "2000", "-2000"), \
+	NTMOVE(c, "0", "0"), \
 	NTCOUNT(c, "0"), NTCOUNT(c, "40"), NTCOUNT(c, "70"), NTCOUNT(c, "88"), NTCOUNT(c, "97"), NTCOUNT(c, "100"), \
 	NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), \
 	NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), \
 	NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), \
 	NULL }
-	{ "nettraf",    80, 1,  Always, NTFRAMES("#83a598") },
-	{ "nettrafmax", 80, 1,  Always, NTFRAMES("#e8cb61") },
+	{ "nettraf",    80, 1,  Always, NTFRAMES("#83a598", "#6f8c81", "#485b54", "#1a211e") },
+	{ "nettrafmax", 80, 1,  Always, NTFRAMES("#e8cb61", "#c5ad52", "#807035", "#2e2913") },
 	/* the same for a block hiding its rates, kept to its two arrows: after
 	 * the motion the rate, field 9, covers both of them, counting up.
 	 * letter_spacing stretches its 4 characters (44px at mono 14) to the
 	 * two arrows and the space between them (45px), so nothing moves. */
-#define NTMINI(c) { \
-	NTMOVE(c, "6000", "-6000", "20%"), \
-	NTMOVE(c, "4000", "-4000", "55%"), \
-	NTMOVE(c, "2000", "-2000", "85%"), \
-	NTMOVE(c, "0", "0", "100%"), \
-	NTMOVE(c, "-2000", "2000", "85%"), \
-	NTMOVE(c, "-4000", "4000", "55%"), \
-	NTMOVE(c, "-6000", "6000", "20%"), \
-	NTMOVE(c, "6000", "-6000", "20%"), \
-	NTMOVE(c, "4000", "-4000", "55%"), \
-	NTMOVE(c, "2000", "-2000", "85%"), \
-	NTMOVE(c, "0", "0", "100%"), \
-	NTMOVE(c, "-2000", "2000", "85%"), \
-	NTMOVE(c, "-4000", "4000", "55%"), \
-	NTMOVE(c, "-6000", "6000", "20%"), \
-	NTMOVE(c, "6000", "-6000", "20%"), \
-	NTMOVE(c, "4000", "-4000", "55%"), \
-	NTMOVE(c, "2000", "-2000", "85%"), \
-	NTMOVE(c, "0", "0", "100%"), \
+#define NTMINI(c, c85, c55, c20) { \
+	NTMOVE(c20, "6000", "-6000"), \
+	NTMOVE(c55, "4000", "-4000"), \
+	NTMOVE(c85, "2000", "-2000"), \
+	NTMOVE(c, "0", "0"), \
+	NTMOVE(c85, "-2000", "2000"), \
+	NTMOVE(c55, "-4000", "4000"), \
+	NTMOVE(c20, "-6000", "6000"), \
+	NTMOVE(c20, "6000", "-6000"), \
+	NTMOVE(c55, "4000", "-4000"), \
+	NTMOVE(c85, "2000", "-2000"), \
+	NTMOVE(c, "0", "0"), \
+	NTMOVE(c85, "-2000", "2000"), \
+	NTMOVE(c55, "-4000", "4000"), \
+	NTMOVE(c20, "-6000", "6000"), \
+	NTMOVE(c20, "6000", "-6000"), \
+	NTMOVE(c55, "4000", "-4000"), \
+	NTMOVE(c85, "2000", "-2000"), \
+	NTMOVE(c, "0", "0"), \
 	NTNUM(c, "0"), NTNUM(c, "40"), NTNUM(c, "70"), \
 	NTNUM(c, "88"), NTNUM(c, "97"), NTNUM(c, "100"), \
 	NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), \
@@ -278,8 +282,8 @@ static const Anim anims[] = {
 	NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), \
 	NULL }
 #define NTNUM(c, p) "<span color='" c "' letter_spacing='342'>%{9 " p "}</span>"
-	{ "nettrafmini",    80, 1, Always, NTMINI("#83a598") },
-	{ "nettrafminimax", 80, 1, Always, NTMINI("#e8cb61") },
+	{ "nettrafmini",    80, 1, Always, NTMINI("#83a598", "#6f8c81", "#485b54", "#1a211e") },
+	{ "nettrafminimax", 80, 1, Always, NTMINI("#e8cb61", "#c5ad52", "#807035", "#2e2913") },
 	/* a weather threshold crossed: only the icons over it move, the drop
 	 * falling twice, the snowflake drifting down and the sun pulsing, for
 	 * 3.6s; then each is replaced by its number, counting up from 0, fast
@@ -290,39 +294,39 @@ static const Anim anims[] = {
 	 * it: a space between two spans takes the text font's wider space, not
 	 * the icon font's, and would push the icons apart as the motion starts. */
 #define WXMOVE(r, c, h) \
-	"%1<span color='#83a598' " r ">%2</span>" \
-	"%4<span color='#83a598' " c ">%5</span>" \
-	"%7<span color='#e8cb61' " h ">%8</span>"
+	"%1<span " r ">%2</span>" \
+	"%4<span " c ">%5</span>" \
+	"%7<span " h ">%8</span>"
 #define WXCOUNT(p) \
 	"%1<span color='#83a598'>%{3 " p "}</span>" \
 	"%4<span color='#83a598'>%{6 " p "}</span>" \
 	"%7<span color='#e8cb61'>%{9 " p "}</span>"
 #define WXHOLD WXCOUNT("100")
 	{ "weather", 150, 1,    300, {
-		WXMOVE("alpha='20%' rise='6000'", "alpha='15%' rise='6000'", ""),
-		WXMOVE("alpha='30%' rise='5900'", "alpha='23%' rise='5600'", "alpha='95%'"),
-		WXMOVE("alpha='40%' rise='5600'", "alpha='31%' rise='5200'", "alpha='80%'"),
-		WXMOVE("alpha='50%' rise='5200'", "alpha='39%' rise='4800'", "alpha='60%'"),
-		WXMOVE("alpha='60%' rise='4500'", "alpha='48%' rise='4400'", "alpha='40%'"),
-		WXMOVE("alpha='70%' rise='3700'", "alpha='56%' rise='4100'", "alpha='25%'"),
-		WXMOVE("alpha='80%' rise='2600'", "alpha='64%' rise='3700'", "alpha='20%'"),
-		WXMOVE("alpha='90%' rise='1400'", "alpha='72%' rise='3400'", "alpha='25%'"),
-		WXMOVE("rise='0'", "alpha='80%' rise='3000'", "alpha='40%'"),
-		WXMOVE("rise='-1500'", "alpha='88%' rise='2700'", "alpha='60%'"),
-		WXMOVE("rise='-600'", "alpha='96%' rise='2400'", "alpha='80%'"),
-		WXMOVE("rise='0'", "rise='2100'", "alpha='95%'"),
-		WXMOVE("alpha='20%' rise='6000'", "rise='1800'", ""),
-		WXMOVE("alpha='30%' rise='5900'", "rise='1600'", "alpha='95%'"),
-		WXMOVE("alpha='40%' rise='5600'", "rise='1300'", "alpha='80%'"),
-		WXMOVE("alpha='50%' rise='5200'", "rise='1100'", "alpha='60%'"),
-		WXMOVE("alpha='60%' rise='4500'", "rise='900'", "alpha='40%'"),
-		WXMOVE("alpha='70%' rise='3700'", "rise='700'", "alpha='25%'"),
-		WXMOVE("alpha='80%' rise='2600'", "rise='500'", "alpha='20%'"),
-		WXMOVE("alpha='90%' rise='1400'", "rise='400'", "alpha='25%'"),
-		WXMOVE("rise='0'", "rise='200'", "alpha='40%'"),
-		WXMOVE("rise='-1500'", "rise='100'", "alpha='60%'"),
-		WXMOVE("rise='-600'", "rise='0'", "alpha='80%'"),
-		WXMOVE("rise='0'", "rise='0'", "alpha='95%'"),
+		WXMOVE("color='#1a211e' rise='6000'", "color='#141917' rise='6000'", "color='#e8cb61'"),
+		WXMOVE("color='#27322e' rise='5900'", "color='#1e2623' rise='5600'", "color='#dcc15c'"),
+		WXMOVE("color='#34423d' rise='5600'", "color='#29332f' rise='5200'", "color='#baa24e'"),
+		WXMOVE("color='#42524c' rise='5200'", "color='#33403b' rise='4800'", "color='#8b7a3a'"),
+		WXMOVE("color='#4f635b' rise='4500'", "color='#3f4f49' rise='4400'", "color='#5d5127'"),
+		WXMOVE("color='#5c736a' rise='3700'", "color='#495c55' rise='4100'", "color='#3a3318'"),
+		WXMOVE("color='#69847a' rise='2600'", "color='#546a61' rise='3700'", "color='#2e2913'"),
+		WXMOVE("color='#769489' rise='1400'", "color='#5e776d' rise='3400'", "color='#3a3318'"),
+		WXMOVE("color='#83a598' rise='0'", "color='#69847a' rise='3000'", "color='#5d5127'"),
+		WXMOVE("color='#83a598' rise='-1500'", "color='#739186' rise='2700'", "color='#8b7a3a'"),
+		WXMOVE("color='#83a598' rise='-600'", "color='#7e9e92' rise='2400'", "color='#baa24e'"),
+		WXMOVE("color='#83a598' rise='0'", "color='#83a598' rise='2100'", "color='#dcc15c'"),
+		WXMOVE("color='#1a211e' rise='6000'", "color='#83a598' rise='1800'", "color='#e8cb61'"),
+		WXMOVE("color='#27322e' rise='5900'", "color='#83a598' rise='1600'", "color='#dcc15c'"),
+		WXMOVE("color='#34423d' rise='5600'", "color='#83a598' rise='1300'", "color='#baa24e'"),
+		WXMOVE("color='#42524c' rise='5200'", "color='#83a598' rise='1100'", "color='#8b7a3a'"),
+		WXMOVE("color='#4f635b' rise='4500'", "color='#83a598' rise='900'", "color='#5d5127'"),
+		WXMOVE("color='#5c736a' rise='3700'", "color='#83a598' rise='700'", "color='#3a3318'"),
+		WXMOVE("color='#69847a' rise='2600'", "color='#83a598' rise='500'", "color='#2e2913'"),
+		WXMOVE("color='#769489' rise='1400'", "color='#83a598' rise='400'", "color='#3a3318'"),
+		WXMOVE("color='#83a598' rise='0'", "color='#83a598' rise='200'", "color='#5d5127'"),
+		WXMOVE("color='#83a598' rise='-1500'", "color='#83a598' rise='100'", "color='#8b7a3a'"),
+		WXMOVE("color='#83a598' rise='-600'", "color='#83a598' rise='0'", "color='#baa24e'"),
+		WXMOVE("color='#83a598' rise='0'", "color='#83a598' rise='0'", "color='#dcc15c'"),
 		WXCOUNT("0"), WXCOUNT("37"), WXCOUNT("64"), WXCOUNT("82"),
 		WXCOUNT("92"), WXCOUNT("97"), WXCOUNT("99"), WXCOUNT("100"),
 		WXHOLD, WXHOLD, WXHOLD, WXHOLD, WXHOLD, WXHOLD, WXHOLD,
@@ -336,21 +340,22 @@ static const Anim anims[] = {
 	 * from above and settle. The bar centres a block by its height, which
 	 * rise stretches, so an invisible zero-width space rises the other way
 	 * to keep the block still. %1 = colour, %2 = icon and date, %3 = the
-	 * digits both times share, %4 = the old rest, %5 = the new rest */
-#define FLIP(d, r, counter, a) "<span color='%1'>%2<b>%3<span rise='" r "' alpha='" a "'>" d "</span></b></span><span rise='" counter "'>\u200B</span>"
+	 * digits both times share, %4 = the old rest, %5 = the new rest. The
+	 * moving digits fade through darker shades of the text colour. */
+#define FLIP(d, r, counter, c) "<span color='%1'>%2<b>%3<span rise='" r "' color='" c "'>" d "</span></b></span><span rise='" counter "'>\u200B</span>"
 	{ "clockflip", 45, 1,   0, {
-		FLIP("%4", "-1200", "1200", "85%"),
-		FLIP("%4", "-3000", "3000", "60%"),
-		FLIP("%4", "-5500", "5500", "35%"),
-		FLIP("%4", "-8000", "8000", "10%"),
-		FLIP("%5", "8000", "-8000", "10%"),
-		FLIP("%5", "5500", "-5500", "35%"),
-		FLIP("%5", "3000", "-3000", "60%"),
-		FLIP("%5", "1200", "-1200", "85%"),
-		FLIP("%5", "0", "0", "100%"),
-		FLIP("%5", "-900", "900", "100%"),
-		FLIP("%5", "-300", "300", "100%"),
-		FLIP("%5", "0", "0", "100%"),
+		FLIP("%4", "-1200", "1200", "#b8bdc6"),
+		FLIP("%4", "-3000", "3000", "#82858c"),
+		FLIP("%4", "-5500", "5500", "#4c4e52"),
+		FLIP("%4", "-8000", "8000", "#161617"),
+		FLIP("%5", "8000", "-8000", "#161617"),
+		FLIP("%5", "5500", "-5500", "#4c4e52"),
+		FLIP("%5", "3000", "-3000", "#82858c"),
+		FLIP("%5", "1200", "-1200", "#b8bdc6"),
+		FLIP("%5", "0", "0", "%1"),
+		FLIP("%5", "-900", "900", "%1"),
+		FLIP("%5", "-300", "300", "%1"),
+		FLIP("%5", "0", "0", "%1"),
 		NULL } },
 };
 
