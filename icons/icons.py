@@ -160,6 +160,20 @@ def sun(ray):
 	return i
 
 
+def brightness(level):
+	"""A sun of dots, not rays, so it never reads as the weather's: its
+	disc empty, half full or full by level."""
+	i = Icon().circle(12, 12, 4.4)
+	if level == 2:
+		i.fills.append(arcops(12, 12, 4.4, -90, 90))
+	elif level == 3:
+		i.dot(12, 12, 4.4)
+	for k in range(8):
+		a = math.radians(k * 45)
+		i.dot(12 + 8.4 * math.cos(a), 12 + 8.4 * math.sin(a), 1.25)
+	return i
+
+
 def rune():
 	return Icon().path([(7, 7.5), (16.5, 16.5), (12, 21), (12, 3), (16.5, 7.5), (7, 16.5)])
 
@@ -211,8 +225,8 @@ ICONS["wifi-off"] = wifi(3, off=True)
 for n in range(4):
 	ICONS["volume-%d" % n] = volume(n)
 ICONS["volume-mute"] = volume(0, mute=True)
-for n, ray in ((1, 1.2), (2, 2.3), (3, 3.4)):
-	ICONS["brightness-%d" % n] = sun(ray)
+for n in range(1, 4):
+	ICONS["brightness-%d" % n] = brightness(n)
 ICONS["sun"] = sun(3.4)
 
 ICONS["alert"] = (Icon().path([(12, 3.6), (21.4, 19.6), (2.6, 19.6)], True)
