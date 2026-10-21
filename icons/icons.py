@@ -64,6 +64,8 @@ class Icon:
 		self.strokes = []  # (ops, closed)
 		self.fills = []    # ops, always closed
 		self.cuts = []     # an Icon whose shape is cut out of this one
+		self.advance = None  # (x0, x1): exact advance, for pieces that join
+		self.weight = STROKE  # stroke width
 
 	def ops(self, ops, closed=False):
 		self.strokes.append((ops, closed)); return self
@@ -88,6 +90,14 @@ class Icon:
 
 	def frrect(self, x0, y0, x1, y1, r):
 		self.fills.append(rrectops(x0, y0, x1, y1, r)); return self
+
+	def frect(self, x0, y0, x1, y1):
+		self.fills.append(lineops([(x0, y0), (x1, y0), (x1, y1), (x0, y1)])); return self
+
+	def joins(self, x0, x1):
+		"""Advance exactly x0..x1 with no side bearing, so the glyph meets
+		its neighbour edge to edge. Ink may reach past it to hide the seam."""
+		self.advance = (x0, x1); return self
 
 	def cut(self, icon):
 		"""Knock icon's shape out of this one, for a mark on a solid body."""
@@ -270,8 +280,96 @@ def week(day):
 for n in range(1, 8):
 	ICONS["week-%d" % n] = week(n)
 
+# Months as number plates: a solid plate with the month's three capitals
+# cut out of it. The capitals are strokes like every icon, drawn here only
+# for the letters the months need. month-1 = January.
+LW = 6   # letter width in grid units as drawn below; the letters are 10 high
+LS = 1.25  # drawn at this scale: about the height of the text beside them
+GAP = 3.4  # between two characters
+BOLD = 2.6  # their stroke: bold, like the time beside them
+
+
+def glyphops(ch, x, y):
+	"""One capital or digit as stroke ops in a LW x 10 box at (x, y)."""
+	P = lambda *pts: [lineops([(x + a, y + b) for a, b in pts])]
+	A = lambda cx, cy, r, a0, a1: arcops(x + cx, y + cy, r, a0, a1)
+	L = lambda a, b: ("L", (x + a, y + b))
+	if ch == "A": return P((0, 10), (3, 0), (6, 10)) + P((1.1, 6.4), (4.9, 6.4))
+	if ch == "B": return [[("M", (x, y + 10)), L(0, 0), L(3.4, 0)] + A(3.4, 2.5, 2.5, -90, 90)[1:] + [L(0, 5), L(3.6, 5)] + A(3.6, 7.5, 2.5, -90, 90)[1:] + [L(0, 10)]]
+	if ch == "C": return [A(3, 3, 3, -25, -180) + [L(0, 7)] + A(3, 7, 3, 180, 25)[1:]]
+	if ch == "D": return [[("M", (x, y)), L(2.6, 0)] + A(2.6, 3.4, 3.4, -90, 0)[1:] + [L(6, 6.6)] + A(2.6, 6.6, 3.4, 0, 90)[1:] + [L(0, 10), L(0, 0)]]
+	if ch == "E": return P((6, 0), (0, 0), (0, 10), (6, 10)) + P((0, 5), (4.6, 5))
+	if ch == "F": return P((6, 0), (0, 0), (0, 10)) + P((0, 5), (4.6, 5))
+	if ch == "G": return [A(3, 3, 3, -25, -180) + [L(0, 7)] + A(3, 7, 3, 180, 0)[1:] + [L(6, 5.4), L(3.4, 5.4)]]
+	if ch == "J": return [[("M", (x + 6, y)), L(6, 7)] + A(3, 7, 3, 0, 160)[1:]]
+	if ch == "L": return P((0, 0), (0, 10), (6, 10))
+	if ch == "M": return P((0, 10), (0, 0), (3, 6), (6, 0), (6, 10))
+	if ch == "N": return P((0, 10), (0, 0), (6, 10), (6, 0))
+	if ch == "O": return [rrectops(x, y, x + 6, y + 10, 3)]
+	if ch == "P": return [[("M", (x, y + 10)), L(0, 0), L(3.3, 0)] + A(3.3, 2.75, 2.75, -90, 90)[1:] + [L(0, 5.5)]]
+	if ch == "R": return glyphops("P", x, y) + P((3, 5.5), (6, 10))
+	if ch == "S": return [A(3, 2.6, 2.6, -25, -270) + A(3, 7.4, 2.6, -90, 155)[1:]]
+	if ch == "T": return P((0, 0), (6, 0)) + P((3, 0), (3, 10))
+	if ch == "U": return [[("M", (x, y)), L(0, 7)] + A(3, 7, 3, 180, 0)[1:] + [L(6, 0)]]
+	if ch == "V": return P((0, 0), (3, 10), (6, 0))
+	if ch == "Y": return P((0, 0), (3, 5), (6, 0)) + P((3, 5), (3, 10))
+	if ch == "0": return [rrectops(x, y, x + 6, y + 10, 3)]
+	if ch == "1": return P((1.2, 2.2), (3.8, 0), (3.8, 10))
+	if ch == "2": return [A(3, 3, 3, 175, 340) + [L(0, 10), L(6, 10)]]
+	if ch == "3": return [A(3, 2.5, 2.5, 200, 450) + A(3, 7.5, 2.5, -90, 160)[1:]]
+	if ch == "4": return P((4.6, 10), (4.6, 0), (0, 7), (6, 7))
+	if ch == "5": return [[("M", (x + 5.6, y)), L(0.9, 0), L(0.6, 4.9)] + A(3, 6.9, 3.1, -140, 150)[1:]]
+	if ch == "6": return [A(3, 7, 3, 0, 360), [("M", (x, y + 7)), quadop((x, y + 7), (x, y + 0.2), (x + 4.8, y))]]
+	if ch == "7": return P((0, 0), (6, 0), (2.2, 10))
+	if ch == "8": return [A(3, 2.6, 2.6, 0, 360), A(3, 7.3, 2.7, 0, 360)]
+	if ch == "9": return [A(3, 3, 3, 0, 360), [("M", (x + 6, y + 3)), quadop((x + 6, y + 3), (x + 6, y + 9.8), (x + 1.2, y + 10))]]
+	raise KeyError(ch)
+
+
+def word(text, x, y):
+	"""text at LS times its drawn size, its top left corner at (x, y)."""
+	i = Icon()
+	i.weight = BOLD
+	for k, ch in enumerate(text):
+		ox = x + k * (LW * LS + GAP)
+		for ops in glyphops(ch, 0, 0):
+			i.ops([(op[0],) + tuple((ox + px * LS, y + py * LS) for px, py in op[1:]) for op in ops])
+	return i
+
+
+# The plate's outer edge and corner radius, and how far a piece's ink runs
+# into its neighbour so no seam shows between them.
+PT, PB, PR, BLEED = 2, 22, 3.4, 0.6  # the clock icon's height
+TY = 12 - 5 * LS  # top of the characters, centred on the plate
+DM = 2.2  # a digit's margin each side: clear of the neighbours' bleed
+
+
+def plate(text):
+	"""The month: the plate's rounded left end with the capitals, open on
+	the right for the day's digits and the end cap to follow."""
+	w = len(text) * (LW * LS + GAP) - GAP
+	x0, x1 = -4.4, w + 5.5
+	return (Icon().frrect(x0, PT, x1, PB, PR).frect(x1 - 2 * PR, PT, x1 + BLEED, PB)
+	        .cut(word(text, 0, TY)).joins(x0 - PAD, x1))
+
+
+for n, m in enumerate(("JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                       "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"), 1):
+	ICONS["month-%d" % n] = plate(m)
+
+
+# The day of the month inside the month's plate: one piece per digit, then
+# the plate's rounded right end. "month-10 plate-1 plate-9 plate-end".
+for d in "0123456789":
+	ICONS["plate-" + d] = (Icon().frect(-BLEED, PT, LW * LS + 2 * DM + BLEED, PB)
+	                       .cut(word(d, DM, TY)).joins(0, LW * LS + 2 * DM))
+# Rounded on the right only: its left edge meets the last digit.
+ICONS["plate-end"] = Icon().joins(0, PR + PAD)
+ICONS["plate-end"].fills.append([("M", (-BLEED, PT)), ("L", (0, PT))] + arcops(0, PT + PR, PR, -90, 0)[1:]
+                                + [("L", (PR, PB - PR))] + arcops(0, PB - PR, PR, 0, 90)[1:] + [("L", (-BLEED, PB))])
+
 # Families share one advance width, so animation frames never change width.
-FAMILIES = ("battery-", "wifi-", "volume-", "brightness-", "bluetooth", "week-")
+FAMILIES = ("battery-", "wifi-", "volume-", "brightness-", "bluetooth", "week-", "month-")
 
 
 def family(name):
@@ -309,7 +407,7 @@ def render(g, icon, tf):
 		draw(pen, ops, closed, tf)
 	pen = None
 	if icon.strokes:
-		g.stroke("circular", STROKE * UNIT, "round", "round")
+		g.stroke("circular", icon.weight * UNIT, "round", "round")
 	pen = g.glyphPen(replace=False)
 	for ops in icon.fills:
 		draw(pen, ops, True, tf)
@@ -352,7 +450,10 @@ def build(out):
 		spans[family(name)] = (min(lo, x0), max(hi, x1))
 	for k, (name, icon) in enumerate(ICONS.items()):
 		lo, hi = spans[family(name)]
-		tf = lambda p, dx=PAD - lo: ((p[0] + dx) * UNIT, CENTRE + (12 - p[1]) * UNIT)
+		pad = PAD
+		if icon.advance:
+			(lo, hi), pad = icon.advance, 0
+		tf = lambda p, dx=pad - lo: ((p[0] + dx) * UNIT, CENTRE + (12 - p[1]) * UNIT)
 		g = font.createChar(BASE + k, name)
 		render(g, icon, tf)
 		for c in icon.cuts:
@@ -371,7 +472,7 @@ def build(out):
 			font.removeGlyph(tmp)
 		g.correctDirection()
 		g.round()
-		g.width = int(round((hi - lo + 2 * PAD) * UNIT))
+		g.width = int(round((hi - lo + 2 * pad) * UNIT))
 	font.generate(out)
 
 
