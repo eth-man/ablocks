@@ -382,6 +382,11 @@ for n in range(3):
 	for r in (5, 9.5, 14)[n:]:
 		ICONS["wifi-unlit-%d" % n].arc(12, 19.5, r, -138, -42)
 
+# Blank, as wide as the icon font's space: a gap between two icons whose
+# width does not depend on its neighbours, as a space's does (the font a
+# space is drawn in follows the text around it).
+ICONS["gap"] = Icon().joins(0, 5.6)
+
 # Families share one advance width, so animation frames never change width.
 FAMILIES = ("battery-", "wifi-", "volume-", "brightness-", "bluetooth", "week-", "month-")
 
@@ -459,11 +464,13 @@ def build(out):
 	font.ascent, font.descent = 860, 140
 	spans = {}
 	for name, icon in ICONS.items():
+		if icon.advance:
+			continue  # its own advance; may have no ink to measure
 		x0, x1 = bbox(icon)
 		lo, hi = spans.get(family(name), (x0, x1))
 		spans[family(name)] = (min(lo, x0), max(hi, x1))
 	for k, (name, icon) in enumerate(ICONS.items()):
-		lo, hi = spans[family(name)]
+		lo, hi = spans.get(family(name), (0, 0))
 		pad = PAD
 		if icon.advance:
 			(lo, hi), pad = icon.advance, 0

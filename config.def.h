@@ -154,6 +154,80 @@ static const Anim anims[] = {
 		"<span color='#90EE90'>\U0010000F</span>%a",
 		"<span color='#90EE90'>\U00100010</span>%a",
 		NULL } },
+	/* network traffic past its speed threshold: the fast arrows stream in
+	 * their direction, received down and sent up, in the speed's colour,
+	 * for 1.4s; then each shows its rate beside it in that colour, counting
+	 * up, held for 1s, over and over while it stays fast; nettrafmax is the
+	 * same for very fast. The script passes four tab-separated fields per
+	 * arrow, received then sent: the arrow with its text if it keeps still,
+	 * the arrow alone if it moves (else a zero-width space), the arrow with
+	 * its rate for the count, and the text beside it while it moves. A
+	 * zero-width space rising the other way keeps the block's height, so
+	 * the bar does not bob it; it comes after the text, which as the
+	 * arrow's neighbour keeps the space it has while the arrow is still. */
+#define NTMOVE(c, r, nr, a) \
+	"%1<span color='" c "' rise='" r "' alpha='" a "'>%2</span>%4<span rise='" nr "'>\u200B</span>" \
+	"%5<span color='" c "' rise='" nr "' alpha='" a "'>%6</span>%8<span rise='" r "'>\u200B</span>"
+#define NTCOUNT(c, p) \
+	"%1<span color='" c "'>%{3 " p "}</span>%5<span color='" c "'>%{7 " p "}</span>"
+#define NTFRAMES(c) { \
+	NTMOVE(c, "6000", "-6000", "20%"), \
+	NTMOVE(c, "4000", "-4000", "55%"), \
+	NTMOVE(c, "2000", "-2000", "85%"), \
+	NTMOVE(c, "0", "0", "100%"), \
+	NTMOVE(c, "-2000", "2000", "85%"), \
+	NTMOVE(c, "-4000", "4000", "55%"), \
+	NTMOVE(c, "-6000", "6000", "20%"), \
+	NTMOVE(c, "6000", "-6000", "20%"), \
+	NTMOVE(c, "4000", "-4000", "55%"), \
+	NTMOVE(c, "2000", "-2000", "85%"), \
+	NTMOVE(c, "0", "0", "100%"), \
+	NTMOVE(c, "-2000", "2000", "85%"), \
+	NTMOVE(c, "-4000", "4000", "55%"), \
+	NTMOVE(c, "-6000", "6000", "20%"), \
+	NTMOVE(c, "6000", "-6000", "20%"), \
+	NTMOVE(c, "4000", "-4000", "55%"), \
+	NTMOVE(c, "2000", "-2000", "85%"), \
+	NTMOVE(c, "0", "0", "100%"), \
+	NTCOUNT(c, "0"), NTCOUNT(c, "40"), NTCOUNT(c, "70"), NTCOUNT(c, "88"), NTCOUNT(c, "97"), NTCOUNT(c, "100"), \
+	NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), \
+	NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), \
+	NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), NTCOUNT(c, "100"), \
+	NULL }
+	{ "nettraf",    80, 1,  Always, NTFRAMES("#83a598") },
+	{ "nettrafmax", 80, 1,  Always, NTFRAMES("#e8cb61") },
+	/* the same for a block hiding its rates, kept to its two arrows: after
+	 * the motion the rate, field 9, covers both of them, counting up.
+	 * letter_spacing stretches its 4 characters (44px at mono 14) to the
+	 * two arrows and the space between them (45px), so nothing moves. */
+#define NTMINI(c) { \
+	NTMOVE(c, "6000", "-6000", "20%"), \
+	NTMOVE(c, "4000", "-4000", "55%"), \
+	NTMOVE(c, "2000", "-2000", "85%"), \
+	NTMOVE(c, "0", "0", "100%"), \
+	NTMOVE(c, "-2000", "2000", "85%"), \
+	NTMOVE(c, "-4000", "4000", "55%"), \
+	NTMOVE(c, "-6000", "6000", "20%"), \
+	NTMOVE(c, "6000", "-6000", "20%"), \
+	NTMOVE(c, "4000", "-4000", "55%"), \
+	NTMOVE(c, "2000", "-2000", "85%"), \
+	NTMOVE(c, "0", "0", "100%"), \
+	NTMOVE(c, "-2000", "2000", "85%"), \
+	NTMOVE(c, "-4000", "4000", "55%"), \
+	NTMOVE(c, "-6000", "6000", "20%"), \
+	NTMOVE(c, "6000", "-6000", "20%"), \
+	NTMOVE(c, "4000", "-4000", "55%"), \
+	NTMOVE(c, "2000", "-2000", "85%"), \
+	NTMOVE(c, "0", "0", "100%"), \
+	NTNUM(c, "0"), NTNUM(c, "40"), NTNUM(c, "70"), \
+	NTNUM(c, "88"), NTNUM(c, "97"), NTNUM(c, "100"), \
+	NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), \
+	NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), \
+	NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), NTNUM(c, "100"), \
+	NULL }
+#define NTNUM(c, p) "<span color='" c "' letter_spacing='342'>%{9 " p "}</span>"
+	{ "nettrafmini",    80, 1, Always, NTMINI("#83a598") },
+	{ "nettrafminimax", 80, 1, Always, NTMINI("#e8cb61") },
 	/* a weather threshold crossed: only the icons over it move, the drop
 	 * falling twice, the snowflake drifting down and the sun pulsing, for
 	 * 3.6s; then each is replaced by its number, counting up from 0, fast

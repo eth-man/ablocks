@@ -93,3 +93,4 @@ U+10005B plate-end
 U+10005C wifi-unlit-0
 U+10005D wifi-unlit-1
 U+10005E wifi-unlit-2
+U+10005F gap
