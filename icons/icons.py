@@ -257,8 +257,21 @@ ICONS["battery-critical"] = (Icon().rrect(2, 7, 19, 17, 2.6).frrect(2, 7, 19, 17
                              .frrect(20.3, 10, 22, 14, 0.8)
                              .cut(Icon().line((10.5, 9.3), (10.5, 11.9)).dot(10.5, 14.5, 1.2)))
 
+# The day of the week as its place in the week: today a tall bar, the
+# other days short ticks. One glyph per place, week-1 = the first day.
+def week(day):
+	i = Icon()
+	for k in range(1, 8):
+		x = 2 + (k - 1) * 5
+		i.line((x, 4.5), (x, 19.5)) if k == day else i.line((x, 10.5), (x, 13.5))
+	return i
+
+
+for n in range(1, 8):
+	ICONS["week-%d" % n] = week(n)
+
 # Families share one advance width, so animation frames never change width.
-FAMILIES = ("battery-", "wifi-", "volume-", "brightness-", "bluetooth")
+FAMILIES = ("battery-", "wifi-", "volume-", "brightness-", "bluetooth", "week-")
 
 
 def family(name):

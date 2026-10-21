@@ -60,3 +60,10 @@ U+10003A bluetooth-scan
 U+10003B rx
 U+10003C tx
 U+10003D battery-critical
+U+10003E week-1
+U+10003F week-2
+U+100040 week-3
+U+100041 week-4
+U+100042 week-5
+U+100043 week-6
+U+100044 week-7
