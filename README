@@ -70,7 +70,8 @@ Hold Shift and scroll on an animating block to speed it up or slow it
 down, and it tells you the number to put in config.h.
 
 Every time i3 restarts, a little wave runs across the bar from left to
-right. It serves no purpose whatsoever. You can turn it off in config.h,
+right, catches its breath, and runs back. It serves no purpose
+whatsoever. You can turn it off in config.h,
 but I don't know why you would.
 
 
