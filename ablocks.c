@@ -19,7 +19,8 @@
  * printing it for as long as the animation should recur: it plays `loops`
  * times, then again every `every` seconds, and stops when the line goes.
  * Shift+scroll on such a block changes its speed live. At startup the boot
- * animation runs across the bar as a wave, left to right; SIGUSR2 replays it.
+ * animation runs across the bar as a wave, left to right and, with
+ * bootreturn, back again; SIGUSR2 replays it.
  */
 #include <errno.h>
 #include <fcntl.h>
@@ -80,6 +81,7 @@ typedef struct {
 
 	const Anim *anim;     /* animation playing, or NULL */
 	long long astart;     /* when it starts; frame 0 is held until then */
+	int late;             /* drawn plain, not frame 0, until it starts */
 	unsigned int ms;      /* its frame time */
 	int loops;            /* plays of its frames in this burst */
 	int step;             /* frames shown so far in this burst */
@@ -101,6 +103,7 @@ static int infd = STDIN_FILENO; /* i3bar's click events; -1 once closed */
 static char inbuf[INLEN];
 static size_t inlen;
 static long long bootat = -1;   /* when to play the boot animation */
+static int bootback;            /* the wave is on its way back */
 
 static long long
 now(void)
@@ -234,6 +237,7 @@ play(State *s, const Anim *a, unsigned int ms, int loops, long long t)
 	s->ms = ms ? ms : 1;
 	s->loops = loops > 0 ? loops : 1;
 	s->astart = t;
+	s->late = 0;
 	s->step = s->frame = 0;
 	dirty = 1;
 }
@@ -400,23 +404,31 @@ setspeed(size_t i, int faster)
 }
 
 /* Start the boot animation on every visible block, each a little after its
- * left neighbour so it runs across the bar as a wave. */
+ * neighbour so it runs across the bar as a wave: left to right, then, with
+ * bootreturn, from the last block back to the first. */
 static void
 boot(long long t)
 {
 	const Anim *a = findanim(bootanim);
-	size_t i, k = 0;
+	size_t i, j, k = 0;
 
 	if (!a || !nframes(a))
 		return;
 	for (i = 0; i < LENGTH(blocks); i++) {
-		if (!st[i].full[0])
+		j = bootback ? LENGTH(blocks) - 1 - i : i;
+		if (!st[j].full[0])
 			continue;
-		play(&st[i], a, a->ms, a->loops, t + (long long)k++ * bootstagger);
+		play(&st[j], a, a->ms, a->loops, t + (long long)k++ * bootstagger);
+		st[j].late = bootback; /* on the way back, no dark bar meanwhile */
 		/* the wave cut any burst short: replay it once the wave passes */
-		if (st[i].trig)
-			st[i].nextburst = t;
+		if (st[j].trig)
+			st[j].nextburst = t;
 	}
+	/* turn back once the wave has left the last block and paused */
+	bootback = bootreturn && !bootback && k;
+	if (bootback)
+		bootat = t + (long long)(k - 1) * bootstagger
+		       + (long long)nframes(a) * a->ms * a->loops + bootpause;
 }
 
 /* Bring every animation up to time t, starting bursts that are due; return
@@ -450,12 +462,17 @@ animate(long long t)
 				continue;
 			}
 		} else {
+			if (s->late && t >= s->astart) {
+				s->late = 0;
+				dirty = 1;
+			}
 			if (f != s->step) {
 				s->step = f;
 				s->frame = f % nframes(s->anim);
 				dirty = 1;
 			}
-			at = s->astart + (long long)(f + 1) * s->ms;
+			at = s->late ? s->astart
+			             : s->astart + (long long)(f + 1) * s->ms;
 		}
 		if (at >= 0 && (w < 0 || at - t < w))
 			w = at - t < 0 ? 0 : at - t;
@@ -484,6 +501,7 @@ readsignals(void)
 		for (k = 0; k < n; k++) {
 			if (c[k] == SIGUSR2) {
 				bootat = now();
+				bootback = 0;
 				continue;
 			}
 			for (i = 0; i < LENGTH(blocks); i++)
@@ -721,7 +739,7 @@ draw(void)
 		fputs("{\"name\":", stdout);
 		jsonstr(blocks[i].name);
 		fputs(",\"full_text\":", stdout);
-		if (st[i].anim) {
+		if (st[i].anim && !st[i].late) {
 			subst(text, sizeof(text), st[i].anim->frames[st[i].frame],
 			      st[i].full, st[i].arg, st[i].step,
 			      nframes(st[i].anim) * st[i].loops);
@@ -780,8 +798,8 @@ main(void)
 				wait = st[i].next - t;
 		}
 		if (bootat >= 0 && bootat <= t) {
-			boot(t);
 			bootat = -1;
+			boot(t);
 		}
 		if (bootat >= 0 && (wait < 0 || bootat - t < wait))
 			wait = bootat - t;

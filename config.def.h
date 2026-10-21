@@ -364,6 +364,8 @@ static const Anim anims[] = {
 static const char *bootanim = "boot";
 static const unsigned int bootdelay = 700;  /* ms for the blocks to print first */
 static const unsigned int bootstagger = 80; /* ms between neighbouring blocks */
+static const int bootreturn = 1;            /* and back again from the last */
+static const unsigned int bootpause = 500;  /* ms at the last block before that */
 
 /* where the block scripts live, like i3blocks' command=~/.local/bin/statusbar/$BLOCK_NAME */
 #define SB "$HOME/.local/bin/statusbar/"
