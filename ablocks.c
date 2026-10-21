@@ -242,6 +242,16 @@ play(State *s, const Anim *a, unsigned int ms, int loops, long long t)
 	dirty = 1;
 }
 
+/* When a new burst may start: now, or after a boot wave that is due, which
+ * would only cut it short and make it start over. */
+static long long
+burstat(void)
+{
+	long long t = now();
+
+	return bootat > t ? bootat : t;
+}
+
 /* Frame time for the block's triggered animation: live speed first, then
  * what the script asked for, then the animation's own. */
 static unsigned int
@@ -294,10 +304,10 @@ request(size_t i, const char *line)
 		}
 		s->trig = a;
 		s->speed = 0;
-		s->nextburst = a ? now() : -1;
+		s->nextburst = a ? burstat() : -1;
 	} else if (a && !a->every && (s->button || strcmp(arg, s->arg))) {
 		/* a one-shot from a click, or with a new value: a new event */
-		s->nextburst = now();
+		s->nextburst = burstat();
 	}
 	if (!line)
 		return; /* keep %a for a one-shot still playing */
@@ -426,9 +436,15 @@ boot(long long t)
 	}
 	/* turn back once the wave has left the last block and paused */
 	bootback = bootreturn && !bootback && k;
-	if (bootback)
-		bootat = t + (long long)(k - 1) * bootstagger
-		       + (long long)nframes(a) * a->ms * a->loops + bootpause;
+	if (!bootback)
+		return;
+	bootat = t + (long long)(k - 1) * bootstagger
+	       + (long long)nframes(a) * a->ms * a->loops + bootpause;
+	/* and hold the bursts until then, or the wave back cuts them short
+	 * again and they start over */
+	for (i = 0; i < LENGTH(blocks); i++)
+		if (st[i].trig)
+			st[i].nextburst = bootat;
 }
 
 /* Bring every animation up to time t, starting bursts that are due; return
