@@ -40,7 +40,7 @@
 #define NAMELEN   32
 #define INLEN     4096
 #define URGENT    33
-#define MAXFRAMES 48
+#define MAXFRAMES 128
 #define MINMS     20
 #define MAXMS     2000
 
