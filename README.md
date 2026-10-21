@@ -1,5 +1,7 @@
 ablocks - a suckless status bar that sucks a little
 ====================================================
+![Each block playing its animation in turn](showcase.gif)
+
 I love suckless software. Small, simple, does one thing, gets out of the
 way. So naturally I went and built a status bar with animations in it.
 
@@ -73,6 +75,8 @@ Every time i3 restarts, a little wave runs across the bar from left to
 right, catches its breath, and runs back. It serves no purpose
 whatsoever. You can turn it off in config.h,
 but I don't know why you would.
+
+![The boot wave running across the bar and back](boot.gif)
 
 
 The icons
