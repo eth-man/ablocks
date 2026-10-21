@@ -1,92 +1,102 @@
-ablocks - i3bar status command with animated blocks
+ablocks - a suckless status bar that sucks a little
 ====================================================
-A small i3blocks replacement in the suckless style: blocks are compiled in
-from config.h, there is no runtime config file, and the only dependency is
-libc. Block scripts written for i3blocks run unchanged.
+I love suckless software. Small, simple, does one thing, gets out of the
+way. So naturally I went and built a status bar with animations in it.
+
+When I plug in the charger, the battery fills up. When the wifi drops,
+the bars drain away. The speaker shakes when I turn the volume all the
+way up, and the clock digits roll down like an old flip clock every
+minute. None of this is necessary. All of it makes me smile.
+
+By suckless standards, an animated bar sucks. I know. So I tried to make
+it suck as little as possible: it is one small C file, you configure it
+by editing config.h and recompiling, and it needs nothing but libc. Take
+the animations out and you are left with a plain, boring replacement for
+i3blocks that runs your existing block scripts as they are.
 
 
-Requirements
-------------
-A C99 compiler and make. Python 3 with fontforge to build the icon font
-(fontforge on Arch ships the Python module). i3bar to display the output.
+What you need
+-------------
+A C compiler, make and i3. Python 3 with fontforge if you want the icon
+font that comes with it (you do, the icons are half the fun).
 
 
-Installation
-------------
-Edit config.mk to match your setup (ablocks is installed into the
-/usr/local namespace by default), then:
-
+Installing
+----------
     make clean install
 
-This installs the binary and the suckless icons font. For a single user,
-without root:
+or, just for yourself, without root:
 
     make PREFIX=$HOME/.local install
 
-The first build copies config.def.h to config.h; edit config.h and
-rebuild to change the blocks.
+The first build creates config.h from config.def.h. That file is your
+whole configuration: the blocks, how often they run, and the animations.
+Change it, rebuild, restart i3. Yes, you recompile to change your bar.
+It takes a second.
 
+Then point i3bar at it in your i3 config:
 
-Running ablocks
----------------
-In the bar section of the i3 config:
-
-    status_command ablocks
+    bar {
+        status_command ablocks
+    }
 
 
 Blocks
 ------
-Each block runs its command through /bin/sh on its interval (Once = at
-startup only), asynchronously, with BLOCK_NAME set. Output is read the
-i3blocks way:
-
-    line 1   full_text
-    line 2   short_text
-    line 3   color
-    @...     animation request, see below
-
-Exit code 33 marks the block urgent. A block with empty output is hidden.
+A block is just a script that prints a line of text, exactly like with
+i3blocks. Clicks and signals work the same way too, so if you already
+have i3blocks scripts, they will run without changes.
 
 
-Animations
-----------
-An animation in config.h is a list of pango frames wrapped around a
-block's output: "%s" is the output itself, "%a" an argument from the
-script, and "%n" that argument with its first number counting up from 0
-over the burst, padded to its final width so nothing beside it moves.
-"%1" to "%9" are the argument's tab-separated fields, so one frame can
-move some parts of a block and keep others still. Use alpha (fades without touching the script's own colours) and
-rise (moves the text without changing its width), so the bar never shifts
-while one plays.
-
-A script asks for an animation by printing an extra line:
-
-    @name [ms [arg]]
-
-and keeps printing it for as long as the condition holds. The animation
-plays `loops` times, then again every `every` seconds, and stops as soon
-as the line goes. An animation with every = 0 is a one-shot: it marks
-an event rather than a condition, so it plays to the end even if the
-line is gone on the next run, and plays again when the argument changes.
-ms overrides the frame time (0 keeps the default).
-ablocks sets ABLOCKS=1 for its scripts; test it before printing the line,
-since i3blocks would show it as the block's short text:
+Making a block move
+-------------------
+A script asks for an animation by printing one extra line, for example
+when the battery runs low:
 
     if [ -n "$ABLOCKS" ] && [ "$capacity" -le 20 ]; then
         echo "@lowbat 0 $capacity%"
     fi
 
-Shift+scroll on such a block changes its speed live, and a notification
-shows the new frame time to copy into config.h. Plain scrolling still
-goes to the script.
+The animation itself lives in config.h as a short list of frames, each
+one a bit of pango markup: a colour here, an icon there, something
+nudged up or down. ablocks flips through them. Some animations play
+once when something happens (the charger goes in), others keep going
+while something is true (the battery is low).
 
-Each time ablocks starts, i.e. on every i3 restart, bootanim plays across
-the bar as a wave, one block after another from left to right; a block
-with an animation requested plays it straight after its turn. Replay the
-wave with:
+The ABLOCKS check is there so the same script still works under plain
+i3blocks, which would otherwise print the request on your bar.
 
-    pkill -USR2 -x ablocks
+Hold Shift and scroll on an animating block to speed it up or slow it
+down, and it tells you the number to put in config.h.
 
-bootdelay gives the blocks time to print before the wave starts and
-bootstagger sets the gap between neighbours; keep it a multiple of the
-frame time so frames change together. Set bootanim to NULL to disable.
+Every time i3 restarts, a little wave runs across the bar from left to
+right. It serves no purpose whatsoever. You can turn it off in config.h,
+but I don't know why you would.
+
+
+The icons
+---------
+The bar comes with its own icon font, suckless icons. Every icon is a few
+lines of Python drawing on the same small grid with the same stroke, so
+they all look like they belong together. They live in a corner of
+Unicode nobody else uses, so they never clash with your other fonts.
+
+    python3 icons/icons.py list
+
+shows them all.
+
+
+A few things I learned the hard way
+-----------------------------------
+Moving things around in a status bar without the whole bar jittering is
+harder than it looks. Most of the work went into making sure that when
+one icon dances, its neighbours stay exactly where they are. If you
+write your own animations, keep every frame the same width as the block
+itself, and if your bar is see-through, fade things by changing their
+colour, not their transparency. Trust me on that one.
+
+
+Should you use it?
+------------------
+If you want a status bar that sucks less, use i3blocks. If you want your
+battery to do a little dance when you plug it in, welcome.
