@@ -197,6 +197,26 @@ static const Anim anims[] = {
 	{ "weathershow", 250, 1, 0, {
 		"%a", "%a", "%a", "%a", "%a", "%a", "%a", "%a", "%a", "%a",
 		NULL } },
+	/* a flip clock: the digits that changed drop out, the new ones fall in
+	 * from above and settle. The bar centres a block by its height, which
+	 * rise stretches, so an invisible zero-width space rises the other way
+	 * to keep the block still. %1 = colour, %2 = icon and date, %3 = the
+	 * digits both times share, %4 = the old rest, %5 = the new rest */
+#define FLIP(d, r, counter, a) "<span color='%1'>%2<b>%3<span rise='" r "' alpha='" a "'>" d "</span></b></span><span rise='" counter "'>\u200B</span>"
+	{ "clockflip", 45, 1,   0, {
+		FLIP("%4", "-1200", "1200", "85%"),
+		FLIP("%4", "-3000", "3000", "60%"),
+		FLIP("%4", "-5500", "5500", "35%"),
+		FLIP("%4", "-8000", "8000", "10%"),
+		FLIP("%5", "8000", "-8000", "10%"),
+		FLIP("%5", "5500", "-5500", "35%"),
+		FLIP("%5", "3000", "-3000", "60%"),
+		FLIP("%5", "1200", "-1200", "85%"),
+		FLIP("%5", "0", "0", "100%"),
+		FLIP("%5", "-900", "900", "100%"),
+		FLIP("%5", "-300", "300", "100%"),
+		FLIP("%5", "0", "0", "100%"),
+		NULL } },
 };
 
 /* played across the bar each time ablocks starts, i.e. on every i3 restart;
@@ -226,7 +246,7 @@ static const Block blocks[] = {
 	{ "volume",             SB "volume",                        Once,     10,     0 },
 	{ "brightness",         SB "brightness",                    5,        13,     0 },
 	{ "battery",            SB "battery BAT0",                  5,        21,     0 },
-	{ "clock",              SB "clock",                         30,       0,      0 },
+	{ "clock",              SB "clock",                         1,        0,      0 },
 	{ "gitcheck",           SB "gitcheck",                      300,      14,     0 },
 	{ "sb-bluetooth",       SB "sb-bluetooth",                  5,        17,     0 },
 	{ "nettraf",            SB "nettraf",                       2,        0,      0 },
