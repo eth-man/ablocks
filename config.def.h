@@ -61,6 +61,17 @@ static const Anim anims[] = {
 		"<span color='#DC143C'>\U00100024 %a</span>",
 		"<span color='#DC143C'><span alpha='15%'>\U00100024</span> %a</span>",
 		NULL } },
+	/* brightness changed: the percentage shows beside the icon for 1.5s,
+	 * then fades out and leaves the bare icon. Each new level restarts it.
+	 * %1 = the icon, %2 = "61%" */
+	{ "brightshow", 100, 1, 0, {
+		"%1 %2", "%1 %2", "%1 %2", "%1 %2", "%1 %2",
+		"%1 %2", "%1 %2", "%1 %2", "%1 %2", "%1 %2",
+		"%1 %2", "%1 %2", "%1 %2", "%1 %2", "%1 %2",
+		"%1 <span alpha='70%'>%2</span>",
+		"%1 <span alpha='40%'>%2</span>",
+		"%1 <span alpha='15%'>%2</span>",
+		NULL } },
 	/* charger plugged in: the battery fills, then the bolt pulses, in
 	 * purple, once. %a = "59%" */
 	{ "plugin", 180, 1,     0, {
