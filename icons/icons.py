@@ -66,6 +66,7 @@ class Icon:
 		self.cuts = []     # an Icon whose shape is cut out of this one
 		self.advance = None  # (x0, x1): exact advance, for pieces that join
 		self.weight = STROKE  # stroke width
+		self.overlay = False  # no advance: drawn under the glyph after it
 
 	def ops(self, ops, closed=False):
 		self.strokes.append((ops, closed)); return self
@@ -98,6 +99,11 @@ class Icon:
 		"""Advance exactly x0..x1 with no side bearing, so the glyph meets
 		its neighbour edge to edge. Ink may reach past it to hide the seam."""
 		self.advance = (x0, x1); return self
+
+	def over(self):
+		"""Advance 0, ink where its family's glyphs draw theirs: printed
+		before one of them, it lays its shape under that glyph."""
+		self.overlay = True; return self
 
 	def cut(self, icon):
 		"""Knock icon's shape out of this one, for a mark on a solid body."""
@@ -368,6 +374,14 @@ ICONS["plate-end"] = Icon().joins(0, PR + PAD)
 ICONS["plate-end"].fills.append([("M", (-BLEED, PT)), ("L", (0, PT))] + arcops(0, PT + PR, PR, -90, 0)[1:]
                                 + [("L", (PR, PB - PR))] + arcops(0, PB - PR, PR, 0, 90)[1:] + [("L", (-BLEED, PB))])
 
+# The arcs wifi-N leaves out, to print faint under it: the whole icon
+# stays in view and the lit arcs give the strength. wifi-unlit-N goes
+# with wifi-N.
+for n in range(3):
+	ICONS["wifi-unlit-%d" % n] = Icon().over()
+	for r in (5, 9.5, 14)[n:]:
+		ICONS["wifi-unlit-%d" % n].arc(12, 19.5, r, -138, -42)
+
 # Families share one advance width, so animation frames never change width.
 FAMILIES = ("battery-", "wifi-", "volume-", "brightness-", "bluetooth", "week-", "month-")
 
@@ -472,7 +486,7 @@ def build(out):
 			font.removeGlyph(tmp)
 		g.correctDirection()
 		g.round()
-		g.width = int(round((hi - lo + 2 * pad) * UNIT))
+		g.width = 0 if icon.overlay else int(round((hi - lo + 2 * pad) * UNIT))
 	font.generate(out)
 
 

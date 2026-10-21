@@ -145,6 +145,15 @@ static const Anim anims[] = {
 		"<span color='#90EE90'>\U0010000F %n</span>",
 		"<span color='#90EE90'>\U00100010 %n</span>",
 		NULL } },
+	/* the same without the percentage, when the block hides it. Its own
+	 * animation because %n would count the first number it finds, and with
+	 * no percentage that is one in the LAN icon's colour. %a = the LAN icon */
+	{ "wifiupicon", 100, 3, 0, {
+		"<span color='#90EE90'>\U0010000D</span>%a",
+		"<span color='#90EE90'>\U0010000E</span>%a",
+		"<span color='#90EE90'>\U0010000F</span>%a",
+		"<span color='#90EE90'>\U00100010</span>%a",
+		NULL } },
 	/* a weather threshold crossed: only the icons over it move, the drop
 	 * falling twice, the snowflake drifting down and the sun pulsing, for
 	 * 3.6s; then each is replaced by its number, counting up from 0, fast
