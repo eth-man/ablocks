@@ -64,13 +64,65 @@ static const Anim anims[] = {
 	/* brightness changed: the percentage shows beside the icon for 1.5s,
 	 * then fades out and leaves the bare icon. Each new level restarts it.
 	 * %1 = the icon, %2 = "61%" */
+	/* a level's text fading out: colours stepping toward the bar, not
+	 * alpha, which a transparent bar shows far brighter than meant */
+#define LVFADE \
+	"%1 <span color='#9da2ac'>%2</span>", \
+	"%1 <span color='#616570'>%2</span>", \
+	"%1 <span color='#30343d'>%2</span>"
 	{ "brightshow", 100, 1, 0, {
 		"%1 %2", "%1 %2", "%1 %2", "%1 %2", "%1 %2",
 		"%1 %2", "%1 %2", "%1 %2", "%1 %2", "%1 %2",
 		"%1 %2", "%1 %2", "%1 %2", "%1 %2", "%1 %2",
-		"%1 <span alpha='70%'>%2</span>",
-		"%1 <span alpha='40%'>%2</span>",
-		"%1 <span alpha='15%'>%2</span>",
+		LVFADE,
+		NULL } },
+	/* the volume changed: its percentage beside the icon for 1.5s, then a
+	 * fade, like brightshow; volup brings it up from below, voldown down
+	 * from above, and volmax, at 100% and over, shakes the speaker and
+	 * shows both in amber. A zero-width space rising the other way keeps
+	 * the block's height, so the bar does not bob it. %1 = the speaker
+	 * icon, %2 = "65%" */
+#define LVRISE(r, nr) "%1 <span color='#d8dee9' rise='" r "'>%2</span><span rise='" nr "'>\u200B</span>"
+#define LVHOLD "%1 <span color='#d8dee9'>%2</span>"
+#define LVHOLD4 LVHOLD, LVHOLD, LVHOLD, LVHOLD
+	{ "volup",  100, 1,     0, {
+		LVRISE("-5000", "5000"), LVRISE("-2500", "2500"), LVRISE("-800", "800"),
+		LVHOLD4, LVHOLD4, LVHOLD4, LVFADE,
+		NULL } },
+	{ "voldown", 100, 1,    0, {
+		LVRISE("5000", "-5000"), LVRISE("2500", "-2500"), LVRISE("800", "-800"),
+		LVHOLD4, LVHOLD4, LVHOLD4, LVFADE,
+		NULL } },
+#define LVSHAKE(r, nr) "<span color='#e8cb61' rise='" r "'>%1</span><span rise='" nr "'>\u200B</span> <span color='#e8cb61'>%2</span>"
+#define LVLOUD "<span color='#e8cb61'>%1 %2</span>"
+	{ "volmax", 70,  1,     0, {
+		LVSHAKE("1500", "-1500"), LVSHAKE("-1500", "1500"), LVSHAKE("1500", "-1500"),
+		LVSHAKE("-1500", "1500"), LVSHAKE("1000", "-1000"), LVSHAKE("-1000", "1000"),
+		LVSHAKE("500", "-500"), LVSHAKE("-500", "500"),
+		LVLOUD, LVLOUD, LVLOUD, LVLOUD, LVLOUD, LVLOUD, LVLOUD, LVLOUD,
+		LVLOUD, LVLOUD, LVLOUD, LVLOUD, LVLOUD, LVLOUD,
+		"%1 <span color='#e8cb61'>%2</span>",
+		"%1 <span color='#9da2ac'>%2</span>",
+		"%1 <span color='#616570'>%2</span>",
+		"%1 <span color='#30343d'>%2</span>",
+		NULL } },
+	/* muted: the speaker's waves drain away; unmuted: they fill back up
+	 * and the level shows for a moment. The muted icon is grey, like the
+	 * block's. %1 = the speaker icon as it ends, %2 = "65%" */
+	{ "volmute", 110, 1,    0, {
+		"<span color='#d8dee9'>\U00100015</span>",
+		"<span color='#d8dee9'>\U00100014</span>",
+		"<span color='#d8dee9'>\U00100013</span>",
+		"<span color='#d8dee9'>\U00100012</span>",
+		"<span color='#969993'>\U00100016</span>",
+		NULL } },
+	{ "volunmute", 110, 1,  0, {
+		"<span color='#969993'>\U00100016</span>",
+		"<span color='#d8dee9'>\U00100012</span>",
+		"<span color='#d8dee9'>\U00100013</span>",
+		"<span color='#d8dee9'>\U00100014</span>",
+		"<span color='#d8dee9'>\U00100015</span>",
+		LVHOLD4, LVHOLD4, LVHOLD4, LVFADE,
 		NULL } },
 	/* charger plugged in: the battery fills, then the bolt pulses, in
 	 * purple, once. %a = "59%" */
