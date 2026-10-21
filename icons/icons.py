@@ -321,6 +321,7 @@ def glyphops(ch, x, y):
 	if ch == "E": return P((6, 0), (0, 0), (0, 10), (6, 10)) + P((0, 5), (4.6, 5))
 	if ch == "F": return P((6, 0), (0, 0), (0, 10)) + P((0, 5), (4.6, 5))
 	if ch == "G": return [A(3, 3, 3, -25, -180) + [L(0, 7)] + A(3, 7, 3, 180, 0)[1:] + [L(6, 5.4), L(3.4, 5.4)]]
+	if ch == "I": return P((3, 0), (3, 10)) + P((1, 0), (5, 0)) + P((1, 10), (5, 10))
 	if ch == "J": return [[("M", (x + 6, y)), L(6, 7)] + A(3, 7, 3, 0, 160)[1:]]
 	if ch == "L": return P((0, 0), (0, 10), (6, 10))
 	if ch == "M": return P((0, 10), (0, 0), (3, 6), (6, 0), (6, 10))
@@ -401,8 +402,45 @@ for n in range(3):
 # space is drawn in follows the text around it).
 ICONS["gap"] = Icon().joins(0, 5.6)
 
+# The time as on a seven-segment display, like the time circuits in Back
+# to the Future: seg-0 .. seg-9, each segment a stroke with a gap at the
+# joins. seg-ghost, all seven, printed faint under a digit, is the unlit
+# segments a real display shows; colon goes between the hours and minutes.
+SW, SH, SG = 7, 13, 1.0  # a digit's width and height, the gap at a join
+SY = 12 - SH / 2
+SEGS = {"a": ((SG, 0), (SW - SG, 0)), "b": ((SW, SG), (SW, SH / 2 - SG)),
+        "c": ((SW, SH / 2 + SG), (SW, SH - SG)), "d": ((SG, SH), (SW - SG, SH)),
+        "e": ((0, SH / 2 + SG), (0, SH - SG)), "f": ((0, SG), (0, SH / 2 - SG)),
+        "g": ((SG, SH / 2), (SW - SG, SH / 2))}
+
+
+def segments(lit):
+	i = Icon()
+	i.weight = 2.4
+	for k in lit:
+		(x0, y0), (x1, y1) = SEGS[k]
+		i.line((1 + x0, SY + y0), (1 + x1, SY + y1))
+	return i
+
+
+for d, lit in enumerate(("abcdef", "bc", "abdeg", "abcdg", "bcfg",
+                         "acdfg", "acdefg", "abc", "abcdefg", "abcdfg")):
+	ICONS["seg-%d" % d] = segments(lit)
+ICONS["seg-ghost"] = segments("abcdefg").over()
+ICONS["colon"] = Icon().dot(1.6, 9.2, 1.3).dot(1.6, 14.8, 1.3)
+
+
+# The date on 21 October, the day Marty reaches 2015: the DeLorean's plate.
+def fullplate(text):
+	w = len(text) * (LW * LS + GAP) - GAP
+	x0, x1 = -4.4, w + 4.4
+	return Icon().frrect(x0, PT, x1, PB, PR).cut(word(text, 0, TY)).joins(x0 - PAD, x1 + PAD)
+
+
+ICONS["outatime"] = fullplate("OUTATIME")
+
 # Families share one advance width, so animation frames never change width.
-FAMILIES = ("battery-", "wifi-", "volume-", "brightness-", "bluetooth", "week-", "month-")
+FAMILIES = ("battery-", "wifi-", "volume-", "brightness-", "bluetooth", "week-", "month-", "seg-")
 
 
 def family(name):

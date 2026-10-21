@@ -94,3 +94,16 @@ U+10005C wifi-unlit-0
 U+10005D wifi-unlit-1
 U+10005E wifi-unlit-2
 U+10005F gap
+U+100060 seg-0
+U+100061 seg-1
+U+100062 seg-2
+U+100063 seg-3
+U+100064 seg-4
+U+100065 seg-5
+U+100066 seg-6
+U+100067 seg-7
+U+100068 seg-8
+U+100069 seg-9
+U+10006A seg-ghost
+U+10006B colon
+U+10006C outatime
