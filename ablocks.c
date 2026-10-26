@@ -263,8 +263,11 @@ burstms(const State *s)
 static void
 setfield(char *dst, size_t size, const char *src, size_t len)
 {
+	/* cut at a character boundary: half a UTF-8 character is invalid
+	 * JSON, and i3bar stops drawing every block over it */
 	if (len >= size)
-		len = size - 1;
+		for (len = size - 1; len && (src[len] & 0xC0) == 0x80; len--)
+			;
 	memcpy(dst, src, len);
 	dst[len] = '\0';
 }
@@ -284,7 +287,7 @@ request(size_t i, const char *line)
 		/* skip spaces only: a leading tab is an empty first field */
 		for (p = line + off; *p == ' '; p++)
 			;
-		snprintf(arg, sizeof(arg), "%.*s", (int)strcspn(p, "\n"), p);
+		setfield(arg, sizeof(arg), p, strcspn(p, "\n"));
 	} else if (line) {
 		sscanf(line, "@%31s", name);
 	}
