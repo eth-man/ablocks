@@ -21,6 +21,9 @@
  * Shift+scroll on such a block changes its speed live. At startup the boot
  * animation runs across the bar as a wave, left to right and, with
  * bootreturn, back again; SIGUSR2 replays it.
+ *
+ * Frames name their colours, "%{alert}", so they can follow a theme: the
+ * values are read from colorfile at startup and again on SIGUSR1.
  */
 #include <errno.h>
 #include <fcntl.h>
@@ -62,6 +65,11 @@ typedef struct {
 	int every;                       /* seconds between bursts; 0 = once */
 	const char *frames[MAXFRAMES];   /* NULL-terminated */
 } Anim;
+
+typedef struct {
+	const char *name;
+	char hex[8];                     /* "#rrggbb" */
+} Color;
 
 #include "config.h"
 
@@ -509,6 +517,35 @@ onsignal(int sig)
 	errno = e;
 }
 
+/* Read colorfile's "name #rrggbb" lines over the colours of config.h.
+ * Names it does not know, and a missing file, are left alone. */
+static void
+loadcolors(void)
+{
+	char path[512], line[128], name[NAMELEN], hex[8];
+	const char *home = getenv("HOME");
+	FILE *f;
+	size_t i;
+
+	if (!home)
+		return;
+	snprintf(path, sizeof(path), "%s/%s", home, colorfile);
+	if (!(f = fopen(path, "r")))
+		return;
+	while (fgets(line, sizeof(line), f)) {
+		if (sscanf(line, "%31s #%6[0-9a-fA-F]", name, hex) != 2 ||
+		    strlen(hex) != 6)
+			continue;
+		for (i = 0; i < LENGTH(colors); i++)
+			if (!strcmp(colors[i].name, name)) {
+				colors[i].hex[0] = '#';
+				memcpy(colors[i].hex + 1, hex, 7);
+			}
+	}
+	fclose(f);
+	dirty = 1;
+}
+
 static void
 readsignals(void)
 {
@@ -523,6 +560,8 @@ readsignals(void)
 				bootback = 0;
 				continue;
 			}
+			if (c[k] == SIGUSR1)
+				loadcolors();
 			for (i = 0; i < LENGTH(blocks); i++)
 				if (c[k] == SIGUSR1 || (blocks[i].signal &&
 				    c[k] == SIGRTMIN + blocks[i].signal))
@@ -677,10 +716,47 @@ field(char *dst, size_t size, const char *arg, int k)
 	dst[l] = '\0';
 }
 
+/* Write "%{name}" or "%{name p}" at the start of frame as a colour into dst:
+ * the named one, or p% of the way to it from the first, the bar's, as a
+ * fade. Return the length read, or 0 for no such colour. */
+static int
+color(char *dst, const char *frame)
+{
+	static const char digits[] = "0123456789abcdef";
+	char name[NAMELEN];
+	unsigned int pct = 100, a, b, k, v;
+	int len = 0;
+	size_t i;
+
+	if (sscanf(frame, "%%{%31[a-z] %u}%n", name, &pct, &len) < 2 || !len) {
+		pct = 100;
+		len = 0;
+		if (sscanf(frame, "%%{%31[a-z]}%n", name, &len) < 1 || !len)
+			return 0;
+	}
+	for (i = 0; i < LENGTH(colors) && strcmp(colors[i].name, name); i++)
+		;
+	if (i == LENGTH(colors))
+		return 0;
+	if (pct > 100)
+		pct = 100;
+	dst[0] = '#';
+	for (k = 0; k < 3; k++) {
+		sscanf(colors[0].hex + 1 + 2 * k, "%2x", &a);
+		sscanf(colors[i].hex + 1 + 2 * k, "%2x", &b);
+		v = (a * (100 - pct) + b * pct + 50) / 100;
+		dst[1 + 2 * k] = digits[v >> 4 & 15];
+		dst[2 + 2 * k] = digits[v & 15];
+	}
+	dst[7] = '\0';
+	return len;
+}
+
 /* Copy frame into dst, "%s" becoming the output, "%a" the argument, "%n"
  * the argument counting up over the burst's steps, "%1".."%9" its
- * tab-separated fields and "%{k p}" field k with its first number at p% of
- * its value, so a run of frames can ease a count however it likes. */
+ * tab-separated fields, "%{k p}" field k with its first number at p% of
+ * its value, so a run of frames can ease a count however it likes, and
+ * "%{name}" a colour. */
 static void
 subst(char *dst, size_t size, const char *frame, const char *out,
       const char *arg, int step, int total)
@@ -698,6 +774,10 @@ subst(char *dst, size_t size, const char *frame, const char *out,
 		    sscanf(frame, "%%{%1d %u}%n", &k, &pct, &len) == 2 && len > 0) {
 			field(fld, sizeof(fld), arg, k);
 			countup(counted, sizeof(counted), fld, pct, 101);
+			r = counted;
+			adv = len;
+		} else if (frame[0] == '%' && frame[1] == '{' &&
+		           (len = color(counted, frame))) {
 			r = counted;
 			adv = len;
 		} else if (frame[0] == '%' && frame[1] == 's')
@@ -799,6 +879,7 @@ main(void)
 		st[i].next = 0;
 		st[i].nextburst = -1;
 	}
+	loadcolors();
 	setupsignals();
 	if (bootanim)
 		bootat = now() + bootdelay;

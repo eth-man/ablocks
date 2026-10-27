@@ -65,6 +65,13 @@ nudged up or down. ablocks flips through them. Some animations play
 once when something happens (the charger goes in), others keep going
 while something is true (the battery is low).
 
+Frames name their colours instead of hard-coding them: `%{alert}`, or
+`%{cyan 45}` for a cyan faded 45% of the way up from the bar. The
+actual values come from `~/.config/ablocks/colors`, a few lines of
+`name #rrggbb` that ablocks reads again whenever it gets SIGUSR1. So if
+your theme switcher writes that file and pokes the bar, the animations
+change colour along with everything else.
+
 The ABLOCKS check is there so the same script still works under plain
 i3blocks, which would otherwise print the request on your bar.
 
